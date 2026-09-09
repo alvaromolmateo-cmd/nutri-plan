@@ -70,12 +70,11 @@
     </nav>
     <div class="sidebar-foot">
       <button class="ghost-btn" id="theme-btn"><svg class="ic" aria-hidden="true"><use href="#i-moon"/></svg><span>Tema</span></button>
-      <button class="ghost-btn" id="settings-btn"><svg class="ic" aria-hidden="true"><use href="#i-settings"/></svg><span>Ajustes</span></button>
-      <p class="tagline">Constancia hoy,<br>resultados mañana</p>
+      <button class="ghost-btn" id="settings-btn" data-view="ajustes"><svg class="ic" aria-hidden="true"><use href="#i-settings"/></svg><span>Ajustes</span></button>
     </div>
   </aside>
 
-  <main class="main" id="view" tabindex="-1"></main>
+  <div style="min-width:0;flex:1"><div class="mobile-settings"><button class="btn btn-sm" onclick="document.getElementById('theme-btn').click()">Tema</button><a class="btn btn-sm" href="#/ajustes">Ajustes</a></div><main class="main" id="view" tabindex="-1"></main></div>
 </div>
 
 <nav class="tabbar" id="tabbar">

@@ -7,10 +7,10 @@ y mensual, dietas intercambiables, seguimiento del progreso y catálogo de alime
 
 ## Qué hace
 
-- **Hoy** — las comidas del día (desayuno, media mañana, comida, merienda de entrenamiento y cena) con sus
-  calorías y macros. Cada hueco de la comida (carbohidrato, proteína, grasa…) es un alimento intercambiable:
-  al elegir otro, la cantidad se recalcula sola para mantener el macro principal. Marca cada comida como hecha
-  y registra el peso del día.
+- **Hoy** — diario con desayuno, almuerzo, comida, merienda y cena vacíos por defecto. El botón «+» permite
+  registrar cualquier alimento del catálogo, elegir cantidades en crudo o cocinado y reutilizar alimentos
+  o comidas recientes. Los checks indican lo consumido; los macros se comparan con los objetivos de la dieta.
+  Los horarios habituales se cambian en Ajustes. También permite registrar el peso del día.
 - **Plan semanal** — calendario por semana o por mes con las kcal y el cumplimiento de cada día, copiar el día
   anterior, marcar días de entrenamiento y **lista de la compra** con la suma de todo lo planificado.
 - **Mis dietas** — definición, volumen, recomposición o las que crees. Los tres deslizadores de macros suben o
@@ -31,6 +31,7 @@ Sin dependencias ni paso de compilación: HTML, CSS y módulos ES nativos.
 | `js/nutrition.js` | Cálculo de macros, escalado por macro y equivalencias entre alimentos |
 | `js/store.js` | Estado en `localStorage` (clave `plataforma-dietas:data`) y acciones |
 | `js/app.js` | Navegación entre vistas, tema y ajustes |
+| `js/views/ajustes.js` | Perfil, horarios de comida, aplicación y copias de seguridad |
 | `js/views/` | Una vista por sección más `parts.js` con las piezas comunes |
 | `js/charts.js` | Gráficas SVG hechas a mano (línea, barras, mapa de calor, anillos) |
 | `sw.js` | Service worker: precarga y red con respaldo en caché |
@@ -46,3 +47,28 @@ Y abrir http://localhost:5175. Los datos se guardan en el navegador; en **Ajuste
 importar en JSON.
 
 Al cambiar archivos precargados hay que subir `VERSION` en `sw.js`.
+
+## Cambios 1.1.0
+
+- Ajustes como pagina, tema claro/oscuro y frase personalizable.
+- Horas y tipos de comida editables; orden por hora.
+- Seleccion limitada a la pauta de cada comida y extras condicionados a la avena.
+- Fruta, verdura y leche del desayuno con consumo independiente.
+- Selector de dia semanal y resumen de consumo por semana, mes o anio.
+- Conversion crudo/cocinado con factores orientativos editables (tabla Nutriolift).
+- Verificacion de logica y renderizado de vistas: `node tools/check.mjs`.
+
+El paquete de tortitas conserva 100 g como referencia inicial: ajustar el peso del paquete real desde Alimentos. Los factores de coccion son aproximaciones; los macros se conservan para la racion equivalente. En el resumen anual cada barra indica la media diaria del mes; la linea usa los dias con consumo registrado.
+
+## Cambios 1.2.0
+
+- Diario de alimentos libre en Hoy, independiente del plan semanal. Los consumos anteriores se conservan;
+  las comidas de la dieta que no estaban marcadas como consumidas no se añaden automáticamente al diario.
+- Catálogo con búsqueda, alimentos recientes y comidas anteriores para añadir al registro actual.
+- Horarios habituales en Ajustes, tarjetas compactas y retirada del lema y del panel de Apariencia.
+- Tema oscuro con fondo negro y detalles burdeos; tema claro con barra lateral blanca.
+- `days[fecha].diary` guarda el consumo; `days[fecha].meals` conserva la planificación anterior.
+
+Comprobaciones: `node tools/check.mjs`. Para las pruebas de interacción DOM, instala `jsdom` en un directorio
+temporal, apunta `NODE_PATH` a su `node_modules` y ejecuta `node tools/check-ui.mjs`. La aplicación sigue sin
+dependencias de ejecución. Estas pruebas no sustituyen la revisión visual en un navegador.

@@ -1,7 +1,7 @@
 // Service worker: precarga la aplicación y sirve desde la red con respaldo en caché.
 // Sube VERSION cada vez que cambien los archivos precargados.
 
-const VERSION = 'nutriplan-v1.0.0';
+const VERSION = 'nutriplan-v1.2.0';
 
 const ASSETS = [
   './index.html',
@@ -20,6 +20,7 @@ const ASSETS = [
   './js/views/dietas.js',
   './js/views/progreso.js',
   './js/views/alimentos.js',
+  './js/views/ajustes.js',
   './icons/icon-192.png',
   './icons/icon-512.png',
 ];

@@ -52,6 +52,7 @@ export function dietPlan(diet, { training = true } = {}) {
       option: idx,
       done: false,
       slots: option.slots.map((s) => ({
+        ...s,
         role: s.role,
         food: s.food,
         g: roundGrams(s.g * (diet.scale?.[scaleKey(s.role)] ?? 1)),
@@ -116,3 +117,21 @@ export function portionLabel(food, grams) {
 }
 
 export const pct = (value, target) => (target > 0 ? Math.min(999, (value / target) * 100) : 0);
+
+// Peso cocinado / peso crudo. Aproximaciones de la tabla Nutriolift.
+const COOKING = {arroz:2.5,pasta:2.5,patata:0.9,boniato:0.85,pollo:0.75,pavo:0.75,ternera:0.7,dorada:0.8,merluza:0.8,lubina:0.8,salmon:0.75,huevo:0.9,brocoli:0.8};
+export const cookingFactor = food => { const factor = food?.cookingFactor ?? COOKING[food?.id]; return Number.isFinite(factor) && factor > 0 ? factor : null; };
+export const shownGrams = (food, slot) => slot.g * (slot.preparation === 'cooked' ? cookingFactor(food) || 1 : 1);
+export const rawGrams = (food, grams, preparation) => grams / (preparation === 'cooked' ? cookingFactor(food) || 1 : 1);
+export function allowedSlots(type, role, entry) {
+ const meal = mealById(type);
+ const choices = meal.options.flatMap(o => o.slots).filter(s => s.role === role);
+ if (entry?.slots.some(s => s.food === 'harina-avena')) choices.push(...(meal.extras || []).filter(s => s.role === role));
+ return choices.filter((s,i,a) => a.findIndex(v => v.food === s.food) === i);
+}
+export function consumedMacros(state, entry) {
+ return slotsMacros(state, (entry.slots || []).filter(s => s.checkable ? s.eaten : entry.done));
+}
+export function orderedMeals(plan) {
+ return Object.entries(plan).map(([id,e]) => ({...mealById(e.type || id),id,time:e.time || mealById(e.type || id).time})).sort((a,b)=>a.time.localeCompare(b.time));
+}

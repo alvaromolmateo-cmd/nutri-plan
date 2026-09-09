@@ -1,0 +1,83 @@
+// Run with NODE_PATH pointing to a test-only jsdom installation; no app dependency.
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
+const { JSDOM } = createRequire(import.meta.url)('jsdom');
+const dom = new JSDOM(readFileSync(new URL('../index.html',import.meta.url),'utf8'), {url:'http://localhost/#/hoy',pretendToBeVisual:true});
+const { window } = dom;
+for (const name of ['window','document','localStorage','location','navigator','CustomEvent','HashChangeEvent']) {
+  Object.defineProperty(globalThis,name,{value:window[name],configurable:true});
+}
+window.matchMedia=globalThis.matchMedia=()=>({matches:false,addEventListener(){}});
+globalThis.ResizeObserver=class{observe(){} disconnect(){}};
+window.HTMLElement.prototype.scrollIntoView=function(){};
+const errors=[];
+window.addEventListener('error',e=>errors.push(e.error));
+const app=await import('../js/app.js');
+const store=await import('../js/store.js');
+const {getDayKey,setDayKey}=await import('../js/views/hoy.js');
+const $=selector=>{const el=document.querySelector(selector);assert.ok(el,selector);return el;};
+const click=selector=>$(selector).click();
+const change=(selector,value,type='change')=>{const el=$(selector);el.value=value;el.dispatchEvent(new window.Event(type,{bubbles:true}));};
+const navigate=view=>{location.hash='#/'+view;app.render();};
+
+assert.equal(document.querySelectorAll('.diary-meal').length,5);
+assert.equal(document.querySelectorAll('.diary-food').length,0);
+const key=getDayKey();
+click('[data-add-food="desayuno"]');
+assert.equal(document.querySelectorAll('[data-library-tab]').length,3);
+change('#food-search','arroz','input');
+assert.ok(document.querySelectorAll('[data-pick]').length>=1);
+click('[data-pick="arroz"]');
+change('#food-grams','75','input');
+click('#food-preparation');
+change('#food-preparation','cooked');
+assert.equal(Number($('#food-grams').value),187.5);
+click('[data-save]');
+assert.equal(document.querySelectorAll('.diary-food').length,1);
+assert.equal(store.diaryMeals(key).desayuno.slots[0].g,75);
+assert.equal($('#modal').textContent,'');
+click('[data-eaten="desayuno:0"]');
+assert.equal(store.diaryMeals(key).desayuno.slots[0].eaten,false);
+click('[data-eaten="desayuno:0"]');
+click('[data-edit-food="desayuno:0"]');
+change('#food-grams','125','input');
+click('[data-save]');
+assert.equal(store.diaryMeals(key).desayuno.slots[0].g,50);
+click('[data-add-food="comida"]');
+click('[data-library-tab="recent"]');
+assert.equal(document.querySelectorAll('[data-pick]').length,1);
+click('[data-pick="arroz"]');
+click('[data-save]');
+assert.equal(store.diaryMeals(key).comida.slots[0].g,50);
+
+// Recent meal copies append to the target without mutating their source.
+const yesterday='2026-09-01';
+store.logFood(yesterday,'desayuno',{food:'pollo',g:160});
+setDayKey('2026-09-02');app.render();
+click('[data-add-food="cena"]');click('[data-library-tab="meals"]');
+click('[data-repeat="0"]');
+assert.equal(store.diaryMeals('2026-09-02').cena.slots[0].food,'pollo');
+assert.equal(store.diaryMeals(yesterday).desayuno.slots[0].g,160);
+click('[data-edit-food="cena:0"]');click('[data-remove]');
+assert.equal(store.diaryMeals('2026-09-02').cena.slots.length,0);
+
+navigate('ajustes');
+assert.equal(document.querySelectorAll('[data-meal-time]').length,5);
+assert.equal(document.querySelector('#set-motto'),null);
+assert.equal(document.querySelector('#set-theme'),null);
+assert.ok(!$('#view').textContent.includes('Apariencia'));
+change('[data-meal-time="cena"]','06:00');
+navigate('hoy');
+assert.ok($('.diary-meal h2').textContent.includes('Cena'));
+assert.equal($('.diary-time').textContent,'06:00');
+const theme=document.documentElement.dataset.theme;
+click('#theme-btn');assert.notEqual(document.documentElement.dataset.theme,theme);
+assert.equal(document.querySelector('meta[name="theme-color"]').content,'#000000');
+click('#theme-btn');assert.equal(document.documentElement.dataset.theme,theme);
+assert.equal(document.querySelector('meta[name="theme-color"]').content,'#ffffff');
+assert.equal(document.querySelector('.tagline'),null);
+for(const view of ['plan','dietas','progreso','alimentos','ajustes']){navigate(view);assert.ok($('#view').textContent.length>100);}
+assert.deepEqual(errors,[]);
+console.log('PASS: DOM flows for empty meals, catalogue search, cooked amounts, add/edit/check/remove, recent foods, recent meals, schedules, settings, themes and all view mounts');
+dom.window.close();

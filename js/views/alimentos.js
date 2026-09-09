@@ -3,11 +3,12 @@
 import { getState, upsertFood, deleteFood, foodInUse } from '../store.js';
 import { esc, icon, fmtNum, uid, openModal, closeModal, modalHeader, toast, confirmDialog } from '../ui.js';
 import { ROLES, ROLE_ORDER } from '../data.js';
-import { macrosOf, kcalFromMacros } from '../nutrition.js';
+import { cookingFactor, macrosOf, kcalFromMacros } from '../nutrition.js';
 import { kcalOf, macroChips, sectionCard } from './parts.js';
 
 let query = '';
 let filter = 'todos';
+let preparation = 'raw';
 let ref = 100; // cantidad de referencia con la que se muestran los macros
 
 const norm = (s) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
@@ -36,7 +37,7 @@ export default {
         <div class="row wrap" style="gap:10px;margin-bottom:14px">
           <div class="search-box">${icon('search')}<input type="search" id="q" placeholder="Buscar alimento" value="${esc(query)}"></div>
           <label class="row" style="gap:8px;white-space:nowrap">
-            <span class="small muted">Valores por</span>
+            <select id="preparation" aria-label="Estado del alimento"><option value="raw" ${preparation === 'raw' ? 'selected' : ''}>Crudo</option><option value="cooked" ${preparation === 'cooked' ? 'selected' : ''}>Cocinado</option></select><span class="small muted">Valores por</span>
             <span class="slot-grams" style="width:110px"><input type="number" id="ref" min="1" step="5" value="${ref}"><span class="unit">g</span></span>
           </label>
         </div>
@@ -47,12 +48,13 @@ export default {
 
         <div class="list">
           ${list.length ? list.map((f) => {
-            const m = macrosOf(f, ref);
+            const factor = cookingFactor(f);
+            const m = macrosOf(f, ref / (preparation === 'cooked' ? factor || 1 : 1));
             return `
               <div class="list-row">
                 <span class="list-emoji">${esc(f.emoji || '🍽️')}</span>
                 <span class="list-main">
-                  <span class="list-name">${esc(f.name)}</span>
+                  <span class="list-name">${esc(f.name)}</span>${factor ? `<span class="list-sub">${fmtNum(ref,1)} g ${preparation === 'raw' ? 'crudo' : 'cocinado'} ≈ ${fmtNum(preparation === 'raw' ? ref * factor : ref / factor,1)} g ${preparation === 'raw' ? 'cocinado' : 'crudo'}</span>` : '<span class="list-sub">Tal como se consume</span>'}
                   <span class="list-sub">${f.roles.map((r) => esc(ROLES[r]?.short || r)).join(' · ')}${f.portion ? ` · 1 ${esc(f.portion.label)} = ${f.portion.g} g` : ''}</span>
                 </span>
                 <span class="list-sub" style="min-width:74px;text-align:right"><b>${fmtNum(kcalOf(m), 0)}</b> kcal</span>
@@ -64,10 +66,11 @@ export default {
               </div>`;
           }).join('') : '<div class="empty">No hay alimentos con ese filtro</div>'}
         </div>
-      </section>`;
+      <p class="small muted">Equivalencias aproximadas: cambian según el método y tiempo de cocción. Puedes ajustar el factor de cada alimento al editarlo. <a href="https://nutriolift.com/calculadora/equivalencia-alimentos-crudos-cocidos" target="_blank" rel="noopener">Referencia: Nutriolift</a>.</p></section>`;
   },
 
   mount(root) {
+    root.querySelector('#preparation').addEventListener('change', e => { preparation = e.target.value; window.dispatchEvent(new HashChangeEvent('hashchange')); });
     const q = root.querySelector('#q');
     q.addEventListener('input', () => {
       query = q.value;
@@ -157,6 +160,7 @@ function openFood(id) {
             </div>
           </label>
 
+          <label class="field"><span>Factor de cocción (peso cocinado / crudo)</span><input id="f-cooking" type="number" min="0.01" step="0.01" value="${cookingFactor(draft) || ''}" placeholder="No aplica"><small>Ej.: arroz 2,5; pollo 0,75. Vacío si no aplica. Los macros se introducen en crudo cuando hay factor.</small></label>
           <div class="totals">
             <div><div class="label">Por 100 g quedaría</div><div class="value" id="f-preview">${fmtNum(draft.kcal, 0)} kcal</div></div>
             <div class="right">${macroChips({ p: draft.p, c: draft.c, f: draft.f })}</div>
@@ -204,6 +208,7 @@ function openFood(id) {
         const plabel = $('#f-plabel').value.trim();
         const pg = Number($('#f-pg').value) || 0;
         upsertFood({
+          cookingFactor: Number($('#f-cooking').value) > 0 ? Number($('#f-cooking').value) : 0,
           id: draft.id,
           name,
           emoji: $('#f-emoji').value.trim() || '🍽️',

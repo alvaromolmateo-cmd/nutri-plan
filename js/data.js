@@ -98,7 +98,7 @@ export const MEALS = [
       { name: 'Patata con merluza', slots: [s('carb', 'patata', 350), s('protein', 'merluza', 180), s('fat', 'aove', 5)] },
       { name: 'Patata con lubina', slots: [s('carb', 'patata', 350), s('protein', 'lubina', 180), s('fat', 'aove', 5)] },
       { name: 'Boniato con salmón', slots: [s('carb', 'boniato', 275), s('protein', 'salmon', 105), s('fat', 'mozzarella', 20)] },
-      { name: 'Ñoquis con pavo', slots: [s('carb', 'gnocchis', 240), s('protein', 'pavo-lonchas', 120), s('fat', 'aguacate', 30), s('fruit', 'fruta', 150)] },
+      { name: 'Ñoquis con pavo', slots: [s('carb', 'gnocchis', 240), s('protein', 'pavo', 120), s('fat', 'aguacate', 30), s('fruit', 'fruta', 150)] },
     ],
   },
   {
@@ -126,7 +126,7 @@ export const MEALS = [
       { name: 'Patata con merluza', slots: [s('carb', 'patata', 350), s('protein', 'merluza', 180), s('fat', 'aove', 5)] },
       { name: 'Patata con lubina', slots: [s('carb', 'patata', 350), s('protein', 'lubina', 180), s('fat', 'aove', 5)] },
       { name: 'Boniato con salmón', slots: [s('carb', 'boniato', 275), s('protein', 'salmon', 105), s('fat', 'mozzarella', 20)] },
-      { name: 'Ñoquis con pavo', slots: [s('carb', 'gnocchis', 250), s('protein', 'pavo-lonchas', 120), s('fat', 'aguacate', 30), s('veg', 'verduras', 200)] },
+      { name: 'Ñoquis con pavo', slots: [s('carb', 'gnocchis', 250), s('protein', 'pavo', 120), s('fat', 'aguacate', 30), s('veg', 'verduras', 200)] },
     ],
   },
 ];
@@ -159,3 +159,20 @@ export const DEFAULT_DIETS = [
     picks: { desayuno: 3, 'media-manana': 2, comida: 7, merienda: 1, cena: 4 },
   },
 ];
+
+FOODS.push({id:'pavo', name:'Pechuga de pavo', emoji:'🍗', roles:['protein'], kcal:107, p:24, c:0, f:1},
+{id:'manzana', name:'Manzana', emoji:'🍎', roles:['fruit'], kcal:52,p:0.3,c:14,f:0.2,portion:{label:'pieza',g:150}},
+{id:'platano', name:'Plátano', emoji:'🍌', roles:['fruit'], kcal:89,p:1.1,c:23,f:0.3,portion:{label:'pieza',g:120}},
+{id:'brocoli', name:'Brócoli', emoji:'🥦',roles:['veg'],kcal:34,p:2.8,c:6.6,f:0.4});
+// Complementos independientes de la combinación principal.
+for (const meal of MEALS) {
+  meal.options.forEach(option => {
+    option.slots = option.slots.filter(s => !['fruit','veg'].includes(s.role));
+    if (meal.id === 'desayuno') option.slots = option.slots.filter(s => s.food !== 'leche-prote');
+    if (['desayuno','comida'].includes(meal.id)) option.slots.push({role:'fruit',food:'fruta',g:150,checkable:true,eaten:false});
+    if (['comida','cena'].includes(meal.id)) option.slots.push({role:'veg',food:'verduras',g:200,checkable:true,eaten:false});
+    if (meal.id === 'desayuno') option.slots.push({role:'extra',food:'leche-prote',g:150,checkable:true,eaten:false});
+  });
+}
+MEALS[0].options = MEALS[0].options.slice(0,4);
+MEALS[0].options[3].name = 'Crema de arroz con proteína';

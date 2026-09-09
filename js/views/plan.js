@@ -1,18 +1,21 @@
 // Vista "Plan semanal": organiza las comidas por semana o por mes.
 
-import { getState, dayPlan, isTrainingDay, setTraining, copyDay, resetDay, activeDiet } from '../store.js';
+import { diaryMeals, getState, dayPlan, isTrainingDay, setTraining, copyDay, resetDay, activeDiet } from '../store.js';
 import { esc, icon, fmtNum, openModal, closeModal, modalHeader, toast } from '../ui.js';
 import {
   todayKey, weekStart, weekDays, addWeeks, weekLabel, addDays, addMonths, currentMonth, monthLabel,
   monthDays, monthOf, dayNum, weekdayIdx, WEEKDAYS, WEEKDAYS_SHORT, dayLabelLong, isToday, cap, parseKey, keyOf,
 } from '../dates.js';
+import { chart } from '../charts.js';
 import { MEALS } from '../data.js';
-import { foodById, slotsMacros, emptyMacros, addMacros, dietTargets, portionLabel } from '../nutrition.js';
+import { consumedMacros, orderedMeals, foodById, slotsMacros, emptyMacros, addMacros, dietTargets, portionLabel } from '../nutrition.js';
 import { kcalOf, macroChips, slotsText, sectionCard } from './parts.js';
 import { setDayKey, dayCompliance } from './hoy.js';
 
 let mode = 'semana';
 let anchor = todayKey();
+let selected = todayKey();
+let summaryRange = 'semana';
 
 const planMacrosOf = (state, key) => Object.values(dayPlan(key)).reduce((a, m) => addMacros(a, slotsMacros(state, m.slots)), emptyMacros());
 
@@ -28,18 +31,27 @@ function shoppingList(state, keys) {
 }
 
 function weekView(state, keys) {
-  return `<div class="week-scroll"><div class="week">${keys.map((k, i) => {
-    const plan = dayPlan(k);
-    const macros = planMacrosOf(state, k);
-    const comp = dayCompliance(state, k);
-    return `
-      <button class="week-day ${isToday(k) ? 'today' : ''}" data-open="${k}">
-        <h4>${esc(WEEKDAYS[i])} ${dayNum(k)}${isTrainingDay(k) ? ' <span class="train-dot" title="Entrenamiento"></span>' : ''}</h4>
-        <div class="small muted">${fmtNum(kcalOf(macros), 0)} kcal${comp != null ? ` · ${Math.round(comp)}%` : ''}</div>
-        ${MEALS.filter((m) => plan[m.id]).map((m) => `
-          <div class="week-meal"><b>${esc(m.name.slice(0, 3))}</b><span>${esc(slotsText(state, plan[m.id].slots, { max: 1 }))}</span></div>`).join('')}
-      </button>`;
-  }).join('')}</div></div>`;
+ if (!keys.includes(selected)) selected = keys[0];
+ const plan = dayPlan(selected);
+ return `<div class="week-selector" role="group" aria-label="Días de la semana">${keys.map((k,i)=>`<button class="day-choice ${selected === k ? 'active' : ''}" data-select="${k}" aria-pressed="${selected === k}"><span>${WEEKDAYS_SHORT[i]}</span><b>${dayNum(k)}</b><small>${dayCompliance(state,k) == null ? '—' : Math.round(dayCompliance(state,k))+'%'}</small></button>`).join('')}</div>
+ <div class="row wrap"><h2>${esc(cap(dayLabelLong(selected)))}</h2><button class="btn btn-sm right" data-open="${selected}">Organizar día</button></div>
+ ${orderedMeals(plan).map(m=>`<article class="selected-meal"><h3>${icon(m.icon)} ${esc(m.name)} <span class="small muted">${m.time}</span></h3><p>${esc(slotsText(state,plan[m.id].slots,{max:20}))}</p>${macroChips(slotsMacros(state,plan[m.id].slots),{kcal:true})}</article>`).join('')}`;
+}
+function summary(state) {
+ const year = anchor.slice(0,4);
+ const keys = summaryRange === 'semana' ? weekDays(weekStart(anchor)) : summaryRange === 'mes' ? monthDays(monthOf(anchor)) : Array.from({length:12},(_,i)=>monthDays(`${year}-${String(i+1).padStart(2,'0')}`)).flat();
+ const records = keys.map(k=>{
+  const entries = Object.values(diaryMeals(k, state));
+  const logged = entries.some(m=>m.done || m.slots.some(s=>s.checkable && s.eaten));
+  return {key:k,value:logged ? kcalOf(entries.reduce((a,m)=>addMacros(a,consumedMacros(state,m)),emptyMacros())) : null};
+ });
+ const present = records.filter(r=>r.value != null);
+ const mean = present.length ? present.reduce((a,r)=>a+r.value,0)/present.length : null;
+ const items = summaryRange === 'ano' ? Array.from({length:12},(_,i)=>{
+  const rows=present.filter(r=>Number(r.key.slice(5,7))===i+1);
+  return {label:['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'][i],value:rows.length?rows.reduce((a,r)=>a+r.value,0)/rows.length:null};
+ }) : records.map(r=>({label:dayNum(r.key),full:dayLabelLong(r.key),value:r.value}));
+ return `<div class="segmented">${[['semana','Semana'],['mes','Mes'],['ano','Año']].map(([v,l])=>`<button data-summary="${v}" class="${summaryRange===v?'active':''}">${l}</button>`).join('')}</div><p class="small muted">${summaryRange==='ano'?year:summaryRange==='mes'?cap(monthLabel(monthOf(anchor))):weekLabel(weekStart(anchor))} · Kcal consumidas${summaryRange==='ano'?' · media diaria por mes':''}. La media incluye solo días con consumo registrado.</p><p>Media diaria: <b>${mean == null?'—':fmtNum(mean,0)} kcal</b></p>${chart('bars',{items,unit:'kcal',decimals:0,height:240,mean,title:'Calorías consumidas y media diaria'})}`;
 }
 
 function monthView(state, ym) {
@@ -101,14 +113,7 @@ export default {
 
       <div class="grid cols-2" style="margin-top:16px">
         <div>
-          ${sectionCard('Resumen', 'chart', `
-            <div class="row" style="justify-content:space-between;margin-bottom:10px">
-              <div><div class="stat-sub">Media diaria</div><div class="stat-value">${fmtNum(avgKcal, 0)} <small>kcal</small></div></div>
-              <div style="text-align:right"><div class="stat-sub">Objetivo</div><div class="stat-value">${fmtNum(targets.kcal, 0)} <small>kcal</small></div></div>
-            </div>
-            ${macroChips({ p: totals.p / keys.length, c: totals.c / keys.length, f: totals.f / keys.length })}
-            <div class="row small muted" style="margin-top:12px;gap:8px">${icon('dumbbell', 'ic-sm')} ${trainDays} ${trainDays === 1 ? 'día' : 'días'} de entrenamiento en ${isWeek ? 'la semana' : 'el mes'}</div>
-          `)}
+          ${sectionCard('Resumen', 'chart', summary(state))}
         </div>
         <div>
           ${sectionCard('Lista de la compra', 'cart', `
@@ -126,6 +131,8 @@ export default {
   },
 
   mount(root) {
+    root.querySelectorAll('[data-select]').forEach(b=>b.addEventListener('click',()=>{selected=b.dataset.select;window.dispatchEvent(new HashChangeEvent('hashchange'));}));
+    root.querySelectorAll('[data-summary]').forEach(b=>b.addEventListener('click',()=>{summaryRange=b.dataset.summary;window.dispatchEvent(new HashChangeEvent('hashchange'));}));
     root.querySelectorAll('[data-mode]').forEach((b) => b.addEventListener('click', () => {
       mode = b.dataset.mode;
       window.dispatchEvent(new HashChangeEvent('hashchange'));
@@ -174,7 +181,7 @@ function openDay(key) {
             <div class="right">${macroChips(macros)}</div>
           </div>
           <div class="list">
-            ${MEALS.filter((m) => plan[m.id]).map((m) => {
+            ${orderedMeals(plan).map((m) => {
               const mm = slotsMacros(state, plan[m.id].slots);
               return `<div class="list-row">
                 <span class="list-emoji">${icon(m.icon)}</span>

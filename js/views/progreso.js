@@ -1,12 +1,12 @@
 // Vista "Progreso": evolución del peso, calorías, adherencia y macros.
 
-import { getState, activeDiet, isTrainingDay, setWeight } from '../store.js';
+import { diaryMeals, getState, activeDiet, isTrainingDay, setWeight } from '../store.js';
 import { esc, icon, fmtNum, fmtDelta, openModal, closeModal, modalHeader, toast } from '../ui.js';
 import { chart, ring, dataTable } from '../charts.js';
 import {
   todayKey, addDays, dayLabelShort, dayLabelLong, weekStart, weekDays, addWeeks, monthShort, monthOf, cap, yearOf,
 } from '../dates.js';
-import { slotsMacros, emptyMacros, addMacros, dietTargets } from '../nutrition.js';
+import { consumedMacros, slotsMacros, emptyMacros, addMacros, dietTargets } from '../nutrition.js';
 import { kcalOf, donut, macroLegend, sectionCard, statCard } from './parts.js';
 import { dayCompliance } from './hoy.js';
 
@@ -17,10 +17,10 @@ const rangeKeys = (n) => Array.from({ length: n }, (_, i) => addDays(todayKey(),
 // Macros realmente consumidos ese día (solo comidas marcadas como hechas).
 function eatenMacros(state, key) {
   const day = state.days[key];
-  if (!day?.meals) return null;
-  const done = Object.values(day.meals).filter((m) => m.done);
+  if (!day?.meals && !day?.diary) return null;
+  const done = Object.values(diaryMeals(key, state)).filter((m) => m.done || m.slots.some(s => s.checkable && s.eaten));
   if (!done.length) return null;
-  return done.reduce((a, m) => addMacros(a, slotsMacros(state, m.slots)), emptyMacros());
+  return done.reduce((a, m) => addMacros(a, consumedMacros(state, m)), emptyMacros());
 }
 
 export default {

@@ -180,7 +180,7 @@ function renderBars(el, spec, W) {
   const plotW = W - padL - padR;
   const plotH = H - padT - padB;
   const slot = plotW / items.length;
-  const bw = Math.max(6, Math.min(44, slot - 8));
+  const bw = Math.max(1, Math.min(44, slot * 0.7));
   const y = (v) => padT + (1 - (v - min) / (max - min)) * plotH;
   const color = spec.color || 'var(--series-1)';
   const dec = spec.decimals ?? 1;
@@ -203,6 +203,7 @@ function renderBars(el, spec, W) {
           <rect class="bar" data-i="${i}" x="${(cx - bw / 2).toFixed(1)}" y="${top.toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="3" fill="${color}"/>
           ${spec.showValues ? `<text class="val" x="${cx.toFixed(1)}" y="${(top - 6).toFixed(1)}" text-anchor="middle">${fmtNum(it.value, dec)}${spec.unit === '%' ? '%' : ''}</text>` : ''}`;
       }).join('')}
+      ${spec.mean != null ? `<line class="goal" x1="${padL}" x2="${W-padR}" y1="${y(spec.mean)}" y2="${y(spec.mean)}"/><text class="goal-label" x="${W-padR}" y="${y(spec.mean)-5}" text-anchor="end">Media ${fmtNum(spec.mean,0)} kcal</text>` : ''}
       <line class="grid baseline" x1="${padL}" x2="${W - padR}" y1="${(padT + plotH).toFixed(1)}" y2="${(padT + plotH).toFixed(1)}"/>
     </svg>${tipHTML()}`;
 

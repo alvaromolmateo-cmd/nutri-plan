@@ -1,12 +1,12 @@
 // Estado de la aplicación: se guarda entero en localStorage y se avisa a las vistas al cambiar.
 
 import { FOODS, DEFAULT_DIETS, MEALS } from './data.js';
-import { dietPlan, roundGrams } from './nutrition.js';
+import { allowedSlots, dietPlan, roundGrams } from './nutrition.js';
 import { todayKey } from './dates.js';
 
 const KEY = 'plataforma-dietas:data';
-export const DATA_VERSION = 1;
-export const APP_VERSION = '1.0.0';
+export const DATA_VERSION = 2;
+export const APP_VERSION = '1.2.0';
 
 const clone = (v) => JSON.parse(JSON.stringify(v));
 
@@ -16,7 +16,8 @@ function initialState() {
     settings: {
       name: 'Álvaro',
       activeDiet: 'definicion',
-      theme: 'auto',
+      theme: 'light',
+      mealTimes: Object.fromEntries(MEALS.map(m => [m.id, m.time])),
       weightGoal: null,
       trainingDays: [true, true, true, true, true, false, false], // L a D
     },
@@ -48,6 +49,8 @@ function migrate(data) {
   out.foods = (out.foods || []).concat(FOODS.filter((f) => !ids.has(f.id)).map(clone));
   if (!out.diets?.length) out.diets = clone(DEFAULT_DIETS);
   out.days = out.days || {};
+  out.settings.theme = out.settings.theme === 'dark' ? 'dark' : 'light';
+  out.settings.mealTimes = { ...base.settings.mealTimes, ...out.settings.mealTimes };
   out.version = DATA_VERSION;
   return out;
 }
@@ -94,6 +97,16 @@ export function dayPlan(key) {
     // La merienda solo aparece en días de entrenamiento.
     if (!isTrainingDay(key)) delete plan.merienda;
     else if (!plan.merienda) plan.merienda = dietPlan(activeDiet(), { training: true }).merienda;
+    for (const [id, entry] of Object.entries(plan)) {
+      const type = entry.type || id;
+      const template = MEALS.find(m => m.id === type);
+      for (const slot of entry.slots) {
+        if (['fruit','veg'].includes(slot.role) && !slot.optional && slot.checkable == null) {slot.checkable = true; slot.eaten = !!entry.done;}
+      }
+      for (const slot of template.options[0].slots.filter(s=>s.checkable)) {
+        if (!entry.slots.some(s=>s.role === slot.role && !s.optional)) entry.slots.push({...slot});
+      }
+    }
     return plan;
   }
   return dietPlan(activeDiet(), { training: isTrainingDay(key) });
@@ -104,7 +117,7 @@ export const dayOf = (key) => state.days[key] || null;
 export const hasLog = (key) => {
   const d = state.days[key];
   if (!d) return false;
-  return !!(d.weight != null || d.note || d.meals || typeof d.training === 'boolean');
+  return !!(d.weight != null || d.note || d.meals || d.diary || typeof d.training === 'boolean');
 };
 
 // ---------- Escrituras ----------
@@ -115,7 +128,7 @@ function ensureDay(key) {
 
 function ensureMeals(key) {
   const day = ensureDay(key);
-  if (!day.meals) day.meals = clone(dayPlan(key));
+  day.meals = clone(dayPlan(key));
   return day.meals;
 }
 
@@ -131,13 +144,14 @@ export function setTraining(key, training) {
 
 export function setMealOption(key, mealId, optionIdx) {
   const meals = ensureMeals(key);
-  const meal = MEALS.find((m) => m.id === mealId);
+  const meal = MEALS.find((m) => m.id === (meals[mealId]?.type || mealId));
   const option = meal.options[optionIdx];
   const diet = activeDiet();
   meals[mealId] = {
     ...(meals[mealId] || {}),
     option: optionIdx,
     slots: option.slots.map((s) => ({
+      ...s,
       role: s.role,
       food: s.food,
       g: roundGrams(s.g * (diet.scale?.[s.role === 'carb' || s.role === 'fruit' || s.role === 'veg' ? 'carb' : s.role === 'fat' ? 'fat' : 'protein'] ?? 1)),
@@ -150,8 +164,18 @@ export function setSlot(key, mealId, slotIdx, patch) {
   const meals = ensureMeals(key);
   const meal = meals[mealId];
   if (!meal?.slots?.[slotIdx]) return;
-  meal.slots[slotIdx] = { ...meal.slots[slotIdx], ...patch };
+  const current = meal.slots[slotIdx];
+  if (patch.food && patch.food !== current.food) {
+    const food = state.foods.find(f => f.id === patch.food);
+    const permitted = ['fruit','veg'].includes(current.role) && !current.optional
+      ? food?.roles.includes(current.role)
+      : allowedSlots(meal.type || mealId,current.role,meal).some(s => s.food === patch.food);
+    if (!permitted) return;
+  }
+  if (patch.g != null && (!Number.isFinite(patch.g) || patch.g < 0)) return;
+  meal.slots[slotIdx] = { ...current, ...patch };
   meal.option = null;
+  if (!meal.slots.some(s => s.food === 'harina-avena')) meal.slots = meal.slots.filter(s => !s.optional);
   commit();
 }
 
@@ -190,7 +214,7 @@ export function resetDay(key) {
 
 export function copyDay(fromKey, toKey) {
   const plan = clone(dayPlan(fromKey));
-  Object.values(plan).forEach((m) => { m.done = false; });
+  Object.values(plan).forEach((m) => { m.done = false; m.slots.forEach(s => { if (s.checkable) s.eaten = false; }); });
   const day = ensureDay(toKey);
   day.meals = plan;
   commit();
@@ -230,6 +254,7 @@ export function deleteFood(id) {
 }
 
 export const foodInUse = (id) => {
+  if (Object.values(state.days).some(d => Object.values(d.diary || {}).some(m => m.slots.some(s => s.food === id)))) return true;
   if (Object.values(state.days).some((d) => Object.values(d.meals || {}).some((m) => (m.slots || []).some((s) => s.food === id)))) return true;
   return MEALS.some((m) => m.options.some((o) => o.slots.some((s) => s.food === id)));
 };
@@ -278,3 +303,119 @@ export function resetAll() {
 }
 
 export { todayKey };
+
+export function setMealDetails(key, id, patch) {
+  const meals = ensureMeals(key);
+  if (!meals[id]) return;
+  if (patch.type && patch.type !== (meals[id].type || id)) {
+    const source = dietPlan(activeDiet(), {training:true})[patch.type];
+    meals[id] = {...source, time: meals[id].time || MEALS.find(m => m.id === id).time, ...patch};
+  } else Object.assign(meals[id], patch);
+  commit();
+}
+
+// El diario es independiente del plan: nunca rellena alimentos por defecto.
+// Los registros antiguos se leen como consumo solo si estaban marcados como ingeridos.
+export function diaryMeals(key, source = state) {
+  const day = source.days[key];
+  const diary = clone(day?.diary || {});
+  if (!day?.diary) {
+    for (const [id, meal] of Object.entries(day?.meals || {})) {
+      const slots = (meal.slots || []).filter(s => s.checkable ? s.eaten : meal.done)
+        .map(s => ({ ...s, checkable: true, eaten: true, optional: false }));
+      if (slots.length) diary[id] = { type: meal.type || id, time: meal.time, slots, done: true };
+    }
+  }
+  for (const meal of MEALS) {
+    if (!diary[meal.id]) diary[meal.id] = { type: meal.id, slots: [], done: false };
+  }
+  for (const [id, meal] of Object.entries(diary)) {
+    const type = meal.type || id;
+    meal.time = meal.time || source.settings.mealTimes?.[type] || MEALS.find(m => m.id === type)?.time || '12:00';
+  }
+  return diary;
+}
+
+function ensureDiary(key) {
+  const day = ensureDay(key);
+  if (!day.diary) {
+    day.diary = diaryMeals(key);
+    // Horarios habituales dinámicos; las horas explícitas antiguas se conservan.
+    for (const [id, meal] of Object.entries(day.diary)) {
+      if (!day.meals?.[id]?.time) delete meal.time;
+    }
+  }
+  return day.diary;
+}
+
+function syncDiaryDone(meal) {
+  meal.done = meal.slots.length > 0 && meal.slots.every(s => s.eaten);
+}
+
+export function logFood(key, mealId, slot, index = null) {
+  const food = state.foods.find(f => f.id === slot.food);
+  if (!food || !Number.isFinite(slot.g) || slot.g <= 0 || !MEALS.some(m => m.id === mealId)) return false;
+  const diary = ensureDiary(key);
+  const meal = diary[mealId];
+  if (index != null && !meal.slots[index]) return false;
+  const entry = { food: food.id, role: food.roles[0], g: slot.g, preparation: slot.preparation === 'cooked' ? 'cooked' : 'raw', checkable: true, eaten: slot.eaten !== false, loggedAt: Date.now() };
+  if (index == null) meal.slots.push(entry);
+  else meal.slots[index] = entry;
+  syncDiaryDone(meal);
+  commit();
+  return true;
+}
+
+export function toggleLoggedFood(key, mealId, index) {
+  const meal = ensureDiary(key)[mealId];
+  if (!meal?.slots[index]) return;
+  meal.slots[index].eaten = !meal.slots[index].eaten;
+  syncDiaryDone(meal);
+  commit();
+}
+
+export function removeLoggedFood(key, mealId, index) {
+  const meal = ensureDiary(key)[mealId];
+  if (!meal?.slots[index]) return;
+  meal.slots.splice(index, 1);
+  syncDiaryDone(meal);
+  commit();
+}
+
+export function clearLoggedMeal(key, mealId) {
+  const meal = ensureDiary(key)[mealId];
+  if (!meal) return;
+  meal.slots = [];
+  meal.done = false;
+  commit();
+}
+
+export function recentMeals(beforeKey, source = state) {
+  return Object.keys(source.days).filter(k => k < beforeKey).sort().reverse().flatMap(key =>
+    Object.entries(diaryMeals(key, source)).map(([id, meal]) => ({ key, id, ...meal, slots: meal.slots.filter(s => s.eaten && source.foods.some(f => f.id === s.food)) }))
+      .filter(m => m.slots.length)
+  ).slice(0, 40);
+}
+
+export function recentFoods(untilKey, source = state) {
+  const seen = new Set();
+  return Object.keys(source.days).filter(k => k <= untilKey).sort().reverse().flatMap(key =>
+    Object.values(diaryMeals(key, source)).reverse().flatMap(m => [...m.slots].reverse())
+  ).sort((a,b) => (b.loggedAt || 0) - (a.loggedAt || 0)).filter(s => {
+    if (!s.eaten || seen.has(s.food) || !source.foods.some(f => f.id === s.food)) return false;
+    seen.add(s.food);
+    return true;
+  }).slice(0, 30);
+}
+
+export function repeatLoggedMeal(key, mealId, sourceKey, sourceMealId) {
+  if (sourceKey >= key) return false;
+  const slots = diaryMeals(sourceKey)[sourceMealId]?.slots.filter(s => s.eaten && state.foods.some(f => f.id === s.food));
+  if (!slots?.length) return false;
+  const meal = ensureDiary(key)[mealId];
+  if (!meal) return false;
+  meal.slots.push(...clone(slots).map(s => ({...s, loggedAt: Date.now()})));
+  syncDiaryDone(meal);
+  commit();
+  return true;
+}
