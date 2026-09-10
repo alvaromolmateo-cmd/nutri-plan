@@ -6,7 +6,7 @@ import { todayKey } from './dates.js';
 
 const KEY = 'plataforma-dietas:data';
 export const DATA_VERSION = 2;
-export const APP_VERSION = '1.2.1';
+export const APP_VERSION = '1.2.2';
 
 const clone = (v) => JSON.parse(JSON.stringify(v));
 

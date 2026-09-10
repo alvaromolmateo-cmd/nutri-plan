@@ -6,6 +6,9 @@ import { MEALS } from '../data.js';
 import { dietPlan, dietTargets, planMacros, slotsMacros, foodById, portionLabel, kcalFromMacros } from '../nutrition.js';
 import { kcalOf, macroChips, donut, macroLegend, slotsText, sectionCard } from './parts.js';
 
+// Estado de interfaz: se conserva cuando guardar cantidades vuelve a renderizar la vista.
+let planAmountsOpen = false;
+
 const MACROS = [
   { key: 'protein', name: 'Proteína', field: 'p', color: 'var(--c-prot)' },
   { key: 'carb', name: 'Carbos', field: 'c', color: 'var(--c-carb)' },
@@ -61,7 +64,7 @@ export default {
           `)}
 
           ${sectionCard('Cantidades del plan', 'sliders', `
-            <details class="plan-amounts"><summary>Ajustar las raciones del plan semanal</summary>
+            <details class="plan-amounts"${planAmountsOpen ? ' open' : ''}><summary>Ajustar las raciones del plan semanal</summary>
             <p class="small muted">Cada deslizador cambia las cantidades de los alimentos del plan. Los objetivos personalizados se mantienen hasta que los edites.</p>
             ${MACROS.map((m) => {
               const v = Math.round((diet.scale?.[m.key] ?? 1) * 100);
@@ -135,6 +138,12 @@ export default {
 
   mount(root) {
     const diet = activeDiet();
+    const amounts = root.querySelector('.plan-amounts');
+    amounts.querySelector('summary').addEventListener('click', (event) => {
+      event.preventDefault();
+      planAmountsOpen = !amounts.open;
+      amounts.open = planAmountsOpen;
+    });
 
     root.querySelectorAll('[data-diet]').forEach((b) => b.addEventListener('click', () => setActiveDiet(b.dataset.diet)));
 
