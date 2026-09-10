@@ -6,7 +6,7 @@ import { todayKey } from './dates.js';
 
 const KEY = 'plataforma-dietas:data';
 export const DATA_VERSION = 2;
-export const APP_VERSION = '1.2.0';
+export const APP_VERSION = '1.2.1';
 
 const clone = (v) => JSON.parse(JSON.stringify(v));
 
@@ -265,6 +265,14 @@ export function updateDiet(id, patch) {
   if (i < 0) return;
   state.diets[i] = { ...state.diets[i], ...patch };
   commit();
+}
+
+// Cuatro valores explícitos: modificar kcal no recalcula los gramos, ni al revés.
+export function setDietTargets(id, targets) {
+  if (!state.diets.some(d => d.id === id)) return false;
+  if (!['kcal','p','c','f'].every(key => Number.isFinite(targets?.[key]) && targets[key] >= (key === 'kcal' ? 1 : 0))) return false;
+  updateDiet(id, { targets: Object.fromEntries(['kcal','p','c','f'].map(key => [key, targets[key]])) });
+  return true;
 }
 
 export function addDiet(diet) {

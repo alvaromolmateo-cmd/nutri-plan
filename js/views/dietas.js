@@ -1,9 +1,9 @@
 // Vista "Mis dietas": elegir la dieta activa y reajustar sus macros y cantidades.
 
-import { getState, activeDiet, setActiveDiet, updateDiet, addDiet, deleteDiet } from '../store.js';
+import { getState, activeDiet, setActiveDiet, updateDiet, setDietTargets, addDiet, deleteDiet } from '../store.js';
 import { esc, icon, fmtNum, uid, openModal, closeModal, modalHeader, toast, confirmDialog } from '../ui.js';
 import { MEALS } from '../data.js';
-import { dietPlan, planMacros, solveScale, slotsMacros, foodById, portionLabel, kcalFromMacros } from '../nutrition.js';
+import { dietPlan, dietTargets, planMacros, slotsMacros, foodById, portionLabel, kcalFromMacros } from '../nutrition.js';
 import { kcalOf, macroChips, donut, macroLegend, slotsText, sectionCard } from './parts.js';
 
 const MACROS = [
@@ -21,12 +21,13 @@ export default {
     const diet = activeDiet();
     const macros = macrosFor(state, diet);
     const rest = macrosFor(state, diet, false);
+    const targets = dietTargets(state, diet);
 
     return `
       <div class="page-head">
         <div>
           <h1 class="page-title">Mis dietas</h1>
-          <div class="page-sub">Elige la dieta activa y ajusta los macros: las cantidades del plan se recalculan solas</div>
+          <div class="page-sub">Elige tu dieta y fija los objetivos que quieres alcanzar cada día</div>
         </div>
         <div class="page-actions">
           <button class="btn btn-sm" data-new>${icon('plus', 'ic-sm')} Nueva dieta</button>
@@ -35,12 +36,12 @@ export default {
 
       <div class="grid cols-3" style="margin-bottom:16px">
         ${state.diets.map((d) => {
-          const m = macrosFor(state, d);
+          const m = dietTargets(state, d);
           return `<button class="diet-card ${d.id === diet.id ? 'on' : ''}" data-diet="${d.id}">
             <span class="diet-emoji">${esc(d.emoji || '🍽️')}</span>
             <span class="diet-name">${esc(d.name)}</span>
             <span class="diet-goal">${esc(d.goal || '')}</span>
-            <span class="row" style="gap:8px;margin-top:4px"><b>${fmtNum(kcalOf(m), 0)} kcal</b>
+            <span class="row wrap" style="gap:8px;margin-top:4px"><b>${fmtNum(m.kcal, 0)} kcal</b>
               <span class="muted small">P ${fmtNum(m.p, 0)} · C ${fmtNum(m.c, 0)} · G ${fmtNum(m.f, 0)}</span></span>
             ${d.id === diet.id ? '<span class="tag on" style="align-self:flex-start">Activa</span>' : ''}
           </button>`;
@@ -49,8 +50,19 @@ export default {
 
       <div class="grid cols-main">
         <div>
-          ${sectionCard('Ajuste de macros', 'sliders', `
-            <p class="small muted">Mueve cada macro para subir o bajar las calorías: las cantidades de cada alimento del plan cambian en proporción.</p>
+          ${sectionCard('Objetivos diarios', 'target', `
+            <form id="diet-targets-form">
+              <div class="diet-target-fields">
+                ${[['kcal','Calorías (kcal)'],['p','Proteína (g)'],['c','Carbos (g)'],['f','Grasas (g)']].map(([key,label]) => `<label class="field"><span>${label}</span><input type="number" id="target-${key}" name="${key}" min="${key === 'kcal' ? 1 : 0}" step="${key === 'kcal' ? 1 : '0.1'}" inputmode="decimal" value="${targets[key]}" required></label>`).join('')}
+              </div>
+              <div class="row wrap"><button class="btn btn-primary" type="submit">${icon('check','ic-sm')} Guardar objetivos</button><span class="small muted">${diet.targets ? 'Objetivos personalizados' : 'Valores iniciales del plan'}</span></div>
+            </form>
+            <p class="small muted" style="margin-top:12px">Las kcal se guardan por separado de los gramos de macros. Estos objetivos se aplican en Hoy y Progreso, tanto en entrenamiento como en descanso.</p>
+          `)}
+
+          ${sectionCard('Cantidades del plan', 'sliders', `
+            <details class="plan-amounts"><summary>Ajustar las raciones del plan semanal</summary>
+            <p class="small muted">Cada deslizador cambia las cantidades de los alimentos del plan. Los objetivos personalizados se mantienen hasta que los edites.</p>
             ${MACROS.map((m) => {
               const v = Math.round((diet.scale?.[m.key] ?? 1) * 100);
               return `<div class="macro-slider">
@@ -60,14 +72,15 @@ export default {
               </div>`;
             }).join('')}
             <div class="totals">
-              <div><div class="label">Objetivo diario (día de entrenamiento)</div><div class="value" data-kcal>${fmtNum(kcalOf(macros), 0)} kcal</div></div>
+              <div><div class="label">Total del plan (entrenamiento)</div><div class="value" data-kcal>${fmtNum(kcalOf(macros), 0)} kcal</div></div>
               <div class="right">${macroChips(macros)}</div>
             </div>
             <div class="row wrap" style="margin-top:14px">
-              <button class="btn btn-sm" data-target>${icon('target', 'ic-sm')} Ajustar a un objetivo de calorías</button>
+              <button class="btn btn-sm" data-target>${icon('target', 'ic-sm')} Usar estos valores como objetivos</button>
               <button class="btn btn-sm" data-reset-scale>${icon('swap', 'ic-sm')} Volver a las cantidades originales</button>
             </div>
-            <p class="small muted" style="margin-top:10px">Los días de descanso se quedan en ${fmtNum(kcalOf(rest), 0)} kcal porque no llevan merienda.</p>
+            <p class="small muted" style="margin-top:10px">El plan de descanso suma ${fmtNum(kcalOf(rest), 0)} kcal al excluir la merienda.</p>
+            </details>
           `)}
 
           ${sectionCard('Comidas de la dieta', 'utensils', `
@@ -93,7 +106,7 @@ export default {
         </div>
 
         <div>
-          ${sectionCard('Reparto de calorías', 'target', `
+          ${sectionCard('Reparto del plan', 'target', `
             <div class="donut-wrap">${donut(macros)}<div style="flex:1;min-width:150px">${macroLegend(macros)}</div></div>
           `)}
 
@@ -125,6 +138,15 @@ export default {
 
     root.querySelectorAll('[data-diet]').forEach((b) => b.addEventListener('click', () => setActiveDiet(b.dataset.diet)));
 
+    root.querySelector('#diet-targets-form').addEventListener('submit', (event) => {
+      event.preventDefault();
+      const form = event.currentTarget;
+      if (!form.reportValidity()) return;
+      const targets = Object.fromEntries(['kcal','p','c','f'].map(key => [key, Number(form.elements.namedItem(key).value)]));
+      if (setDietTargets(diet.id, targets)) toast('Objetivos diarios guardados');
+      else toast('Revisa las calorías y los gramos introducidos');
+    });
+
     root.querySelectorAll('[data-scale]').forEach((input) => {
       const key = input.dataset.scale;
       const preview = () => {
@@ -150,7 +172,11 @@ export default {
       toast('Cantidades originales restauradas');
     });
 
-    root.querySelector('[data-target]')?.addEventListener('click', () => openTargetDialog(diet));
+    root.querySelector('[data-target]')?.addEventListener('click', () => {
+      const targets = dietTargets(getState(), { ...diet, targets: null });
+      setDietTargets(diet.id, targets);
+      toast('Objetivos actualizados con los valores del plan');
+    });
 
     root.querySelectorAll('[data-pick]').forEach((b) => b.addEventListener('click', () => openPicker(diet, b.dataset.pick)));
 
@@ -193,45 +219,6 @@ function dietFoods(state, diet) {
     .map(([id, g]) => ({ food: foodById(state, id), g, macros: slotsMacros(state, [{ food: id, g }]) }))
     .filter((r) => r.food)
     .sort((a, b) => kcalFromMacros(b.macros) - kcalFromMacros(a.macros));
-}
-
-function openTargetDialog(diet) {
-  const state = getState();
-  const current = macrosFor(state, diet);
-  openModal({
-    size: 'sm',
-    render: () => `
-      ${modalHeader('Ajustar a un objetivo', 'Se recalculan las cantidades de todos los alimentos')}
-      <div class="modal-body">
-        <div class="field-row">
-          <label class="field"><span>Proteína (g)</span><input type="number" id="t-p" value="${Math.round(current.p)}"></label>
-          <label class="field"><span>Carbos (g)</span><input type="number" id="t-c" value="${Math.round(current.c)}"></label>
-          <label class="field"><span>Grasas (g)</span><input type="number" id="t-f" value="${Math.round(current.f)}"></label>
-        </div>
-        <div class="totals"><div><div class="label">Calorías resultantes</div><div class="value" id="t-kcal">${fmtNum(kcalOf(current), 0)} kcal</div></div></div>
-      </div>
-      <div class="modal-foot">
-        <button class="btn" data-modal-close>Cancelar</button>
-        <button class="btn btn-primary" data-apply>Aplicar</button>
-      </div>`,
-    mount: (panel) => {
-      const read = () => ({
-        p: Number(panel.querySelector('#t-p').value) || 0,
-        c: Number(panel.querySelector('#t-c').value) || 0,
-        f: Number(panel.querySelector('#t-f').value) || 0,
-      });
-      const update = () => {
-        const t = read();
-        panel.querySelector('#t-kcal').textContent = `${fmtNum(Math.round(t.p * 4 + t.c * 4 + t.f * 9), 0)} kcal`;
-      };
-      panel.querySelectorAll('input').forEach((i) => i.addEventListener('input', update));
-      panel.querySelector('[data-apply]').addEventListener('click', () => {
-        updateDiet(diet.id, { scale: solveScale(getState(), diet, read()) });
-        closeModal();
-        toast('Cantidades ajustadas al objetivo');
-      });
-    },
-  });
 }
 
 function openPicker(diet, mealId) {

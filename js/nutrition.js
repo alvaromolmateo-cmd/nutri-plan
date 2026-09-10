@@ -69,7 +69,8 @@ export function planMacros(state, plan) {
   return Object.values(plan || {}).reduce((acc, m) => addMacros(acc, slotsMacros(state, m.slots)), emptyMacros());
 }
 
-// Objetivos diarios de la dieta: los del plan tal y como está escalado.
+// Los objetivos manuales tienen prioridad y son independientes del plan y del entrenamiento.
+// Las dietas sin objetivos guardados conservan el cálculo anterior como punto de partida.
 export function dietTargets(state, diet, training = true) {
   if (diet.targets) return diet.targets;
   const m = planMacros(state, dietPlan(diet, { training }));

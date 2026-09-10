@@ -21,7 +21,7 @@ export default {
     return `<div class="page-head"><div><h1 class="page-title">Ajustes</h1><div class="page-sub">Tu perfil, tus horarios y tus datos.</div></div></div>
       <div class="settings-grid">
         <section class="card settings-profile"><div class="card-head"><h2 class="card-title">${icon('target')}Perfil y objetivos</h2></div>
-          <div class="field-row"><label class="field"><span>Tu nombre</span><input id="set-name" maxlength="40" value="${esc(s.name)}"></label><label class="field"><span>Objetivo de peso (kg)</span><input id="set-weight-goal" type="number" min="1" step="0.1" value="${s.weightGoal??''}" placeholder="Sin objetivo"></label></div>
+          <div class="field-row"><label class="field"><span>Tu nombre</span><input id="set-name" type="text" maxlength="40" value="${esc(s.name)}"></label><label class="field"><span>Objetivo de peso (kg)</span><input id="set-weight-goal" type="number" min="1" step="0.1" value="${s.weightGoal??''}" placeholder="Sin objetivo"></label></div>
           <div class="field"><span>Entrenamiento habitual</span><div class="training-days">${WEEKDAYS_SHORT.map((d,i)=>`<button class="tag ${s.trainingDays[i]?'on':''}" data-training-day="${i}" aria-pressed="${!!s.trainingDays[i]}">${d}</button>`).join('')}</div></div>
           <p class="small muted">Los objetivos de kcal y macros se ajustan desde Mis dietas. Puedes cambiar entrenamiento o descanso en Hoy.</p>
         </section>
