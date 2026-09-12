@@ -1,9 +1,9 @@
-# NutriPlan · Plataforma de Dietas
+﻿# NutriPlan · Plataforma de Dietas
 
 Aplicación web (PWA) para llevar mi dieta: plan diario de comidas con sus macros, planificación semanal
 y mensual, dietas intercambiables, seguimiento del progreso y catálogo de alimentos.
 
-**En vivo:** https://alvaromolmateo-cmd.github.io/plataforma-de-dietas/
+**En vivo:** https://alvaromolmateo-cmd.github.io/nutri-plan/
 
 ## Qué hace
 
