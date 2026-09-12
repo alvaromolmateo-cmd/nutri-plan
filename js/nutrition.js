@@ -69,10 +69,8 @@ export function planMacros(state, plan) {
   return Object.values(plan || {}).reduce((acc, m) => addMacros(acc, slotsMacros(state, m.slots)), emptyMacros());
 }
 
-// Los objetivos manuales tienen prioridad y son independientes del plan y del entrenamiento.
-// Las dietas sin objetivos guardados conservan el cálculo anterior como punto de partida.
+// Los objetivos diarios son los totales del plan de la dieta (con o sin merienda).
 export function dietTargets(state, diet, training = true) {
-  if (diet.targets) return diet.targets;
   const m = planMacros(state, dietPlan(diet, { training }));
   return { kcal: Math.round(kcalFromMacros(m)), p: Math.round(m.p), c: Math.round(m.c), f: Math.round(m.f) };
 }

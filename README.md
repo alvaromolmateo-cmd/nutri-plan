@@ -13,9 +13,9 @@ y mensual, dietas intercambiables, seguimiento del progreso y catálogo de alime
   Los horarios habituales se cambian en Ajustes. También permite registrar el peso del día.
 - **Plan semanal** — calendario por semana o por mes con las kcal y el cumplimiento de cada día, copiar el día
   anterior, marcar días de entrenamiento y **lista de la compra** con la suma de todo lo planificado.
-- **Mis dietas** — definición, volumen, recomposición o las que crees. Introduce y guarda por separado tus
-  objetivos diarios de kcal, proteína, carbos y grasas. Se aplican en Hoy y Progreso. Los deslizadores de
-  cantidades del plan semanal siguen disponibles en un apartado desplegable.
+- **Mis dietas** — definición, volumen, recomposición o las que crees. Los totales de kcal y macros del plan
+  son los objetivos diarios que se usan en Hoy y Progreso; las cantidades se ajustan con los deslizadores del
+  apartado desplegable «Cantidades del plan».
 - **Progreso** — evolución del peso con objetivo, calorías consumidas, adherencia semanal, reparto medio de
   macros y mapa de cumplimiento anual.
 - **Alimentos** — catálogo con la información nutricional. Los macros se pueden introducir sobre 100 g o sobre
@@ -80,3 +80,8 @@ dependencias de ejecución. Estas pruebas no sustituyen la revisión visual en u
 - Cuatro objetivos diarios independientes por dieta, guardados en `diet.targets`. Se conservan al cambiar
   las raciones del plan, la dieta activa y al exportar/importar copias. Una dieta sin objetivos personalizados
   continúa usando el cálculo del plan hasta que se guarden sus objetivos.
+
+## Cambios 1.2.3
+
+- Se retira el apartado «Objetivos diarios» de Mis dietas: se solapaba con el reparto y las cantidades del plan.
+  Los objetivos vuelven a ser los totales del plan y los `diet.targets` guardados se descartan al cargar o importar.

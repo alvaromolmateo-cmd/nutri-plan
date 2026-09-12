@@ -1,6 +1,6 @@
 // Vista "Mis dietas": elegir la dieta activa y reajustar sus macros y cantidades.
 
-import { getState, activeDiet, setActiveDiet, updateDiet, setDietTargets, addDiet, deleteDiet } from '../store.js';
+import { getState, activeDiet, setActiveDiet, updateDiet, addDiet, deleteDiet } from '../store.js';
 import { esc, icon, fmtNum, uid, openModal, closeModal, modalHeader, toast, confirmDialog } from '../ui.js';
 import { MEALS } from '../data.js';
 import { dietPlan, dietTargets, planMacros, slotsMacros, foodById, portionLabel, kcalFromMacros } from '../nutrition.js';
@@ -24,13 +24,12 @@ export default {
     const diet = activeDiet();
     const macros = macrosFor(state, diet);
     const rest = macrosFor(state, diet, false);
-    const targets = dietTargets(state, diet);
 
     return `
       <div class="page-head">
         <div>
           <h1 class="page-title">Mis dietas</h1>
-          <div class="page-sub">Elige tu dieta y fija los objetivos que quieres alcanzar cada día</div>
+          <div class="page-sub">Elige tu dieta y ajusta sus comidas y cantidades</div>
         </div>
         <div class="page-actions">
           <button class="btn btn-sm" data-new>${icon('plus', 'ic-sm')} Nueva dieta</button>
@@ -53,19 +52,9 @@ export default {
 
       <div class="grid cols-main">
         <div>
-          ${sectionCard('Objetivos diarios', 'target', `
-            <form id="diet-targets-form">
-              <div class="diet-target-fields">
-                ${[['kcal','Calorías (kcal)'],['p','Proteína (g)'],['c','Carbos (g)'],['f','Grasas (g)']].map(([key,label]) => `<label class="field"><span>${label}</span><input type="number" id="target-${key}" name="${key}" min="${key === 'kcal' ? 1 : 0}" step="${key === 'kcal' ? 1 : '0.1'}" inputmode="decimal" value="${targets[key]}" required></label>`).join('')}
-              </div>
-              <div class="row wrap"><button class="btn btn-primary" type="submit">${icon('check','ic-sm')} Guardar objetivos</button><span class="small muted">${diet.targets ? 'Objetivos personalizados' : 'Valores iniciales del plan'}</span></div>
-            </form>
-            <p class="small muted" style="margin-top:12px">Las kcal se guardan por separado de los gramos de macros. Estos objetivos se aplican en Hoy y Progreso, tanto en entrenamiento como en descanso.</p>
-          `)}
-
           ${sectionCard('Cantidades del plan', 'sliders', `
             <details class="plan-amounts"${planAmountsOpen ? ' open' : ''}><summary>Ajustar las raciones del plan semanal</summary>
-            <p class="small muted">Cada deslizador cambia las cantidades de los alimentos del plan. Los objetivos personalizados se mantienen hasta que los edites.</p>
+            <p class="small muted">Cada deslizador cambia las cantidades de los alimentos del plan. Los totales del plan son los objetivos diarios de Hoy y Progreso.</p>
             ${MACROS.map((m) => {
               const v = Math.round((diet.scale?.[m.key] ?? 1) * 100);
               return `<div class="macro-slider">
@@ -79,7 +68,6 @@ export default {
               <div class="right">${macroChips(macros)}</div>
             </div>
             <div class="row wrap" style="margin-top:14px">
-              <button class="btn btn-sm" data-target>${icon('target', 'ic-sm')} Usar estos valores como objetivos</button>
               <button class="btn btn-sm" data-reset-scale>${icon('swap', 'ic-sm')} Volver a las cantidades originales</button>
             </div>
             <p class="small muted" style="margin-top:10px">El plan de descanso suma ${fmtNum(kcalOf(rest), 0)} kcal al excluir la merienda.</p>
@@ -147,15 +135,6 @@ export default {
 
     root.querySelectorAll('[data-diet]').forEach((b) => b.addEventListener('click', () => setActiveDiet(b.dataset.diet)));
 
-    root.querySelector('#diet-targets-form').addEventListener('submit', (event) => {
-      event.preventDefault();
-      const form = event.currentTarget;
-      if (!form.reportValidity()) return;
-      const targets = Object.fromEntries(['kcal','p','c','f'].map(key => [key, Number(form.elements.namedItem(key).value)]));
-      if (setDietTargets(diet.id, targets)) toast('Objetivos diarios guardados');
-      else toast('Revisa las calorías y los gramos introducidos');
-    });
-
     root.querySelectorAll('[data-scale]').forEach((input) => {
       const key = input.dataset.scale;
       const preview = () => {
@@ -179,12 +158,6 @@ export default {
     root.querySelector('[data-reset-scale]')?.addEventListener('click', () => {
       updateDiet(diet.id, { scale: { carb: 1, protein: 1, fat: 1 } });
       toast('Cantidades originales restauradas');
-    });
-
-    root.querySelector('[data-target]')?.addEventListener('click', () => {
-      const targets = dietTargets(getState(), { ...diet, targets: null });
-      setDietTargets(diet.id, targets);
-      toast('Objetivos actualizados con los valores del plan');
     });
 
     root.querySelectorAll('[data-pick]').forEach((b) => b.addEventListener('click', () => openPicker(diet, b.dataset.pick)));

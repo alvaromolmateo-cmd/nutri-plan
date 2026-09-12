@@ -541,8 +541,6 @@ input[type="range"] { width: 100%; accent-color: var(--primary); padding: 0; bor
 .time-field { display: flex; align-items: center; justify-content: space-between; gap: 14px; font-size: 13px; }
 .time-field span { display: flex; align-items: center; gap: 8px; }
 .time-field input { width: 124px; flex: 0 0 124px; min-height: 40px; }
-.diet-target-fields { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 0 14px; }
-.diet-target-fields > * { min-width: 0; }
 .plan-amounts summary { cursor: pointer; font-weight: 600; color: var(--text-soft); }
 .plan-amounts[open] summary { margin-bottom: 14px; }
 @media (max-width:900px) {
