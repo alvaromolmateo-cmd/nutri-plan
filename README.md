@@ -85,3 +85,15 @@ dependencias de ejecución. Estas pruebas no sustituyen la revisión visual en u
 
 - Se retira el apartado «Objetivos diarios» de Mis dietas: se solapaba con el reparto y las cantidades del plan.
   Los objetivos vuelven a ser los totales del plan y los `diet.targets` guardados se descartan al cargar o importar.
+
+## Cambios 1.3.0
+
+- El cumplimiento del día mide lo cerca que está lo consumido de las kcal (40 %) y de la proteína, los carbos y
+  las grasas (20 % cada uno) del objetivo; pasarse resta igual que quedarse corto. Afecta a Hoy, Plan y Progreso.
+- Hoy: cada alimento tiene un botón para quitarlo y, en pantallas táctiles, se puede deslizar hacia un lado.
+  El aviso permite deshacer.
+- Plan: las comidas se muestran como fichas de alimentos (emoji, cantidad y peso cocinado aproximado) con barra
+  de reparto de macros.
+- Alimentos: fichas verticales con el nombre y las acciones arriba y los macros debajo; la equivalencia
+  crudo/cocinado solo aparece en los alimentos con factor de cocción.
+- Ajustes de diseño para móvil: filas del diario, filtros desplazables y textos que ya no se comprimen.

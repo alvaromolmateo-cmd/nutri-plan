@@ -1,5 +1,5 @@
 // Diario de consumo independiente de la planificación de la dieta.
-import { getState, diaryMeals, logFood, toggleLoggedFood, removeLoggedFood, clearLoggedMeal,
+import { getState, diaryMeals, logFood, toggleLoggedFood, removeLoggedFood, restoreLoggedFood, clearLoggedMeal,
   recentFoods, recentMeals, repeatLoggedMeal, isTrainingDay, setTraining, activeDiet, dayOf, setWeight } from '../store.js';
 import { esc, icon, fmtNum, openModal, closeModal, modalHeader, toast, refreshModal, confirmDialog } from '../ui.js';
 import { todayKey, dayLabelLong, dayLabelShort, addDays, weekStart, weekDays, WEEKDAYS_SHORT, cap, greeting } from '../dates.js';
@@ -12,13 +12,26 @@ let dayKey = todayKey();
 const redraw = () => window.dispatchEvent(new CustomEvent('nutriplan:render'));
 const normalize = value => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 
-export function dayCompliance(state, key) {
-  if (!state.days[key]?.diary) {
-    const meals = Object.values(state.days[key]?.meals || {});
-    return meals.length ? meals.filter(m => m.done).length / meals.length * 100 : null;
+// Cumplimiento = cercanía de lo consumido a los objetivos del día (kcal pesan el 40 %,
+// cada macro un 20 %). Quedarse corto o pasarse resta por igual; sin consumo, null.
+const COMPLIANCE_WEIGHTS = { kcal: .4, p: .2, c: .2, f: .2 };
+
+export function complianceParts(state, key) {
+  const eaten = Object.values(diaryMeals(key, state)).reduce((sum, m) => addMacros(sum, consumedMacros(state, m)), emptyMacros());
+  const values = { kcal: kcalOf(eaten), p: eaten.p, c: eaten.c, f: eaten.f };
+  if (!values.kcal) return null;
+  const targets = dietTargets(state, activeDiet(), isTrainingDay(key));
+  const parts = {};
+  for (const k of Object.keys(COMPLIANCE_WEIGHTS)) {
+    parts[k] = targets[k] > 0 ? Math.max(0, 1 - Math.abs(values[k] - targets[k]) / targets[k]) * 100 : 100;
   }
-  const slots = Object.values(diaryMeals(key, state)).flatMap(m => m.slots);
-  return slots.length ? slots.filter(s => s.eaten).length / slots.length * 100 : null;
+  return parts;
+}
+
+export function dayCompliance(state, key) {
+  const parts = complianceParts(state, key);
+  if (!parts) return null;
+  return Object.entries(COMPLIANCE_WEIGHTS).reduce((sum, [k, w]) => sum + parts[k] * w, 0);
 }
 
 function streak(state) {
@@ -36,11 +49,13 @@ function mealCard(state, meal, entry) {
       <button class="icon-btn plain" data-menu="${meal.id}" aria-label="Opciones de ${esc(meal.name)}">${icon('sliders')}</button></div>
     <div class="diary-meal-macros">${icon('flame', 'ic-sm')} <b>${fmtNum(kcalOf(total), 0)} kcal</b><span>· P ${fmtNum(total.p, 0)} · C ${fmtNum(total.c, 0)} · G ${fmtNum(total.f, 0)}</span></div>
     <div class="diary-foods">${entry.slots.map((slot, index) => {
-      const food = foodById(state, slot.food);
-      return `<div class="diary-food ${slot.eaten ? '' : 'not-eaten'}"><span class="list-emoji">${esc(food?.emoji || '🍽️')}</span>
+      const food = foodById(state, slot.food), name = esc(food?.name || 'alimento');
+      return `<div class="diary-swipe" data-swipe="${meal.id}:${index}"><div class="diary-swipe-bg" aria-hidden="true">${icon('trash', 'ic-sm')}<span>Quitar</span></div>
+        <div class="diary-food ${slot.eaten ? '' : 'not-eaten'}"><span class="list-emoji">${esc(food?.emoji || '🍽️')}</span>
         <button class="diary-food-edit" data-edit-food="${meal.id}:${index}"><span>${esc(food?.name || 'Alimento eliminado del catálogo')}</span><small>${slot.preparation === 'cooked' ? 'Peso cocinado' : cookingFactor(food) ? 'Peso en crudo' : 'Tal como se consume'}</small></button>
-        <button class="diary-quantity" data-edit-food="${meal.id}:${index}" aria-label="Editar cantidad de ${esc(food?.name || 'alimento')}">${fmtNum(shownGrams(food, slot), 1)} g<small>${fmtNum(kcalOf(macrosOf(food,slot.g)), 0)} kcal</small></button>
-        <button class="check ${slot.eaten ? 'on' : ''}" data-eaten="${meal.id}:${index}" aria-label="Consumido: ${esc(food?.name || 'alimento')}" aria-pressed="${slot.eaten}">${icon('check', 'ic-sm')}</button></div>`;
+        <button class="diary-quantity" data-edit-food="${meal.id}:${index}" aria-label="Editar cantidad de ${name}">${fmtNum(shownGrams(food, slot), 1)} g<span class="prep">${slot.preparation === 'cooked' ? ' cocinado' : cookingFactor(food) ? ' crudo' : ''}</span><small>${fmtNum(kcalOf(macrosOf(food,slot.g)), 0)} kcal</small></button>
+        <button class="check ${slot.eaten ? 'on' : ''}" data-eaten="${meal.id}:${index}" aria-label="Consumido: ${name}" aria-pressed="${slot.eaten}">${icon('check', 'ic-sm')}</button>
+        <button class="icon-btn plain diary-remove" data-remove-food="${meal.id}:${index}" aria-label="Quitar ${name}">${icon('trash', 'ic-sm')}</button></div></div>`;
     }).join('')}</div>
     <button class="diary-add" data-add-food="${meal.id}" aria-label="Añadir alimento a ${esc(meal.name)}">${icon('plus')}<span>Añadir alimento</span></button></section>`;
 }
@@ -60,7 +75,7 @@ export default {
     <div class="grid cols-main today-layout"><div class="diary-main">${orderedMeals(meals).map(m=>mealCard(state,m,meals[m.id])).join('')}
       <section class="card"><div class="card-head"><h2 class="card-title">${icon('scale')}Peso del día</h2><button class="btn btn-sm right" data-weight>${weight==null?'Registrar':'Cambiar'}</button></div><div class="stat-value">${weight==null?'—':fmtNum(weight,1)+' <small>kg</small>'}</div>${chart('line',{points,unit:'kg',decimals:1,height:150,goal:state.settings.weightGoal ?? undefined,goalLabel:'Objetivo',empty:'Registra tu peso para ver la evolución'})}</section></div>
       <aside class="diary-summary"><section class="card"><div class="card-head"><h2 class="card-title">${icon('target')}Macros de hoy</h2></div><div class="donut-wrap">${donut(eaten)}<div class="diary-legend">${macroLegend(eaten)}</div></div></section>
-        <section class="card"><div class="card-head"><h2 class="card-title">${icon('trophy')}Cumplimiento</h2></div><div class="donut-wrap">${ring({pct:comp,size:100,stroke:10,sub:'registrado'})}<div><b>${streak(state)} días seguidos</b><p class="small muted">Alimentos marcados como consumidos.</p></div></div></section></aside></div>`;
+        <section class="card"><div class="card-head"><h2 class="card-title">${icon('trophy')}Cumplimiento</h2></div><div class="donut-wrap">${ring({pct:comp,size:100,stroke:10,sub:'del objetivo'})}<div class="compliance-info"><b>${(n=>`${n} ${n===1?'día seguido':'días seguidos'}`)(streak(state))}</b><p class="small muted">Cercanía a tus kcal, proteína, carbos y grasas del día.</p></div></div></section></aside></div>`;
   },
   mount(root) {
     root.querySelectorAll('[data-day]').forEach(b=>b.addEventListener('click',()=>{dayKey=Number(b.dataset.day)?addDays(dayKey,Number(b.dataset.day)):todayKey();redraw();}));
@@ -69,10 +84,61 @@ export default {
     root.querySelectorAll('[data-add-food]').forEach(b=>b.addEventListener('click',()=>openFoodLibrary(b.dataset.addFood)));
     root.querySelectorAll('[data-edit-food]').forEach(b=>b.addEventListener('click',()=>{const [id,index]=b.dataset.editFood.split(':');openFoodAmount(id,diaryMeals(dayKey)[id].slots[Number(index)],Number(index));}));
     root.querySelectorAll('[data-eaten]').forEach(b=>b.addEventListener('click',()=>{const [id,index]=b.dataset.eaten.split(':');toggleLoggedFood(dayKey,id,Number(index));}));
+    root.querySelectorAll('[data-remove-food]').forEach(b=>b.addEventListener('click',()=>{const [id,index]=b.dataset.removeFood.split(':');removeFoodWithUndo(id,Number(index));}));
+    root.querySelectorAll('[data-swipe]').forEach(row=>attachSwipe(row,()=>{const [id,index]=row.dataset.swipe.split(':');removeFoodWithUndo(id,Number(index));}));
     root.querySelectorAll('[data-menu]').forEach(b=>b.addEventListener('click',()=>openMealMenu(b.dataset.menu)));
     root.querySelector('[data-weight]').addEventListener('click',openWeight);
   },
 };
+
+function removeFoodWithUndo(mealId, index) {
+  const key = dayKey, slot = diaryMeals(key)[mealId]?.slots[index];
+  if (!slot) return;
+  const name = foodById(getState(), slot.food)?.name || 'Alimento';
+  removeLoggedFood(key, mealId, index);
+  toast(`${name} quitado`, 4500, { label: 'Deshacer', run: () => restoreLoggedFood(key, mealId, index, slot) });
+}
+
+// Deslizar un alimento hacia un lado (en pantallas táctiles) lo quita del registro.
+function attachSwipe(row, onDismiss) {
+  const card = row.querySelector('.diary-food');
+  let pointer = null, startX = 0, startY = 0, dx = 0, axis = null;
+  const reset = () => { card.style.transform = ''; row.classList.remove('swiping', 'armed'); pointer = null; axis = null; };
+  row.addEventListener('pointerdown', e => {
+    if (e.pointerType === 'mouse' || pointer != null) return;
+    pointer = e.pointerId; startX = e.clientX; startY = e.clientY; dx = 0; axis = null;
+  });
+  row.addEventListener('pointermove', e => {
+    if (e.pointerId !== pointer) return;
+    const x = e.clientX - startX, y = e.clientY - startY;
+    if (!axis && Math.hypot(x, y) > 10) {
+      axis = Math.abs(x) > Math.abs(y) * 1.3 ? 'x' : 'y';
+      if (axis === 'x') { row.classList.add('swiping'); try { row.setPointerCapture(pointer); } catch {} }
+    }
+    if (axis !== 'x') return;
+    dx = x;
+    card.style.transform = `translateX(${dx}px)`;
+    row.dataset.dir = dx > 0 ? 'right' : 'left';
+    row.classList.toggle('armed', Math.abs(dx) > row.offsetWidth * .35);
+  });
+  const end = e => {
+    if (e.pointerId !== pointer) return;
+    if (axis !== 'x') { reset(); return; }
+    // Evita que el gesto se interprete también como toque sobre el alimento.
+    const swallow = ev => { ev.preventDefault(); ev.stopPropagation(); };
+    row.addEventListener('click', swallow, { capture: true, once: true });
+    setTimeout(() => row.removeEventListener('click', swallow, { capture: true }), 350);
+    if (e.type === 'pointerup' && Math.abs(dx) > row.offsetWidth * .35) {
+      row.classList.remove('swiping');
+      row.classList.add('dismissed');
+      card.style.transform = `translateX(${dx > 0 ? '' : '-'}110%)`;
+      setTimeout(onDismiss, 200);
+      pointer = null;
+    } else reset();
+  };
+  row.addEventListener('pointerup', end);
+  row.addEventListener('pointercancel', end);
+}
 
 function openFoodLibrary(mealId) {
   let query='', tab='catalog';
@@ -112,7 +178,7 @@ function openFoodAmount(mealId,slot,index=null) {
     input.addEventListener('input',()=>{grams=Number(input.value);preview();});
     panel.querySelector('#food-preparation')?.addEventListener('change',e=>{const raw=rawGrams(food,grams,preparation);preparation=e.target.value;grams=shownGrams(food,{g:raw,preparation});input.value=String(Math.round(grams*100)/100);preview();});
     panel.querySelector('[data-back]')?.addEventListener('click',()=>openFoodLibrary(mealId));
-    panel.querySelector('[data-remove]')?.addEventListener('click',()=>{closeModal();removeLoggedFood(dayKey,mealId,index);toast('Alimento quitado');});
+    panel.querySelector('[data-remove]')?.addEventListener('click',()=>{closeModal();removeFoodWithUndo(mealId,index);});
     const save=()=>{if(!Number.isFinite(grams)||grams<=0){toast('Introduce una cantidad mayor que cero');input.focus();return;}closeModal();logFood(dayKey,mealId,{food:food.id,g:rawGrams(food,grams,preparation),preparation,eaten:slot.eaten!==false},index);toast(index==null?'Alimento registrado':'Registro actualizado');};
     panel.querySelector('[data-save]').addEventListener('click',save);input.addEventListener('keydown',e=>{if(e.key==='Enter')save();});preview();input.focus();input.select();
   }});

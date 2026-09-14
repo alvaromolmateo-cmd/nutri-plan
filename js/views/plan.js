@@ -9,7 +9,7 @@ import {
 import { chart } from '../charts.js';
 import { MEALS } from '../data.js';
 import { consumedMacros, orderedMeals, foodById, slotsMacros, emptyMacros, addMacros, dietTargets, portionLabel } from '../nutrition.js';
-import { kcalOf, macroChips, slotsText, sectionCard } from './parts.js';
+import { kcalOf, macroChips, foodTiles, macroBar, sectionCard } from './parts.js';
 import { setDayKey, dayCompliance } from './hoy.js';
 
 let mode = 'semana';
@@ -35,7 +35,10 @@ function weekView(state, keys) {
  const plan = dayPlan(selected);
  return `<div class="week-selector" role="group" aria-label="Días de la semana">${keys.map((k,i)=>`<button class="day-choice ${selected === k ? 'active' : ''}" data-select="${k}" aria-pressed="${selected === k}"><span>${WEEKDAYS_SHORT[i]}</span><b>${dayNum(k)}</b><small>${dayCompliance(state,k) == null ? '—' : Math.round(dayCompliance(state,k))+'%'}</small></button>`).join('')}</div>
  <div class="row wrap"><h2>${esc(cap(dayLabelLong(selected)))}</h2><button class="btn btn-sm right" data-open="${selected}">Organizar día</button></div>
- ${orderedMeals(plan).map(m=>`<article class="selected-meal"><h3>${icon(m.icon)} ${esc(m.name)} <span class="small muted">${m.time}</span></h3><p>${esc(slotsText(state,plan[m.id].slots,{max:20}))}</p>${macroChips(slotsMacros(state,plan[m.id].slots),{kcal:true})}</article>`).join('')}`;
+ <div class="plan-meals">${orderedMeals(plan).map(m=>{const mm=slotsMacros(state,plan[m.id].slots);return `<article class="plan-meal">
+   <header class="plan-meal-head"><span class="meal-ico">${icon(m.icon)}</span><div class="plan-meal-title"><h3>${esc(m.name)}</h3><span class="small muted">${esc(m.time)}</span></div><span class="plan-meal-kcal">${fmtNum(kcalOf(mm),0)}<small>kcal</small></span></header>
+   ${foodTiles(state,plan[m.id].slots)}
+   <footer class="plan-meal-foot">${macroBar(mm)}${macroChips(mm)}</footer></article>`;}).join('')}</div>`;
 }
 function summary(state) {
  const year = anchor.slice(0,4);
@@ -183,13 +186,13 @@ function openDay(key) {
           <div class="list">
             ${orderedMeals(plan).map((m) => {
               const mm = slotsMacros(state, plan[m.id].slots);
-              return `<div class="list-row">
-                <span class="list-emoji">${icon(m.icon)}</span>
-                <span class="list-main">
-                  <span class="list-name">${esc(m.name)} <span class="muted small">${m.time}</span></span>
-                  <span class="list-sub">${esc(slotsText(state, plan[m.id].slots))}</span>
-                </span>
-                <span class="list-sub">${fmtNum(kcalOf(mm), 0)} kcal</span>
+              return `<div class="day-meal">
+                <div class="day-meal-head">
+                  <span class="list-emoji">${icon(m.icon)}</span>
+                  <span class="list-name">${esc(m.name)} <span class="muted small">${esc(m.time)}</span></span>
+                  <span class="list-sub right">${fmtNum(kcalOf(mm), 0)} kcal</span>
+                </div>
+                ${foodTiles(state, plan[m.id].slots, { compact: true })}
               </div>`;
             }).join('')}
           </div>

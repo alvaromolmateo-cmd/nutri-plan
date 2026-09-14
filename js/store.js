@@ -384,6 +384,15 @@ export function removeLoggedFood(key, mealId, index) {
   commit();
 }
 
+// Deshace un «Quitar»: vuelve a colocar el alimento en su posición original.
+export function restoreLoggedFood(key, mealId, index, slot) {
+  const meal = ensureDiary(key)[mealId];
+  if (!meal || !slot) return;
+  meal.slots.splice(Math.min(index, meal.slots.length), 0, slot);
+  syncDiaryDone(meal);
+  commit();
+}
+
 export function clearLoggedMeal(key, mealId) {
   const meal = ensureDiary(key)[mealId];
   if (!meal) return;

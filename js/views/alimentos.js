@@ -34,38 +34,45 @@ export default {
       </div>
 
       <section class="card">
-        <div class="row wrap" style="gap:10px;margin-bottom:14px">
-          <div class="search-box">${icon('search')}<input type="search" id="q" placeholder="Buscar alimento" value="${esc(query)}"></div>
-          <label class="row" style="gap:8px;white-space:nowrap">
-            <select id="preparation" aria-label="Estado del alimento"><option value="raw" ${preparation === 'raw' ? 'selected' : ''}>Crudo</option><option value="cooked" ${preparation === 'cooked' ? 'selected' : ''}>Cocinado</option></select><span class="small muted">Valores por</span>
-            <span class="slot-grams" style="width:110px"><input type="number" id="ref" min="1" step="5" value="${ref}"><span class="unit">g</span></span>
-          </label>
+        <div class="foods-toolbar">
+          <div class="search-box">${icon('search')}<input type="search" id="q" placeholder="Buscar alimento" value="${esc(query)}" aria-label="Buscar alimento"></div>
+          <div class="foods-ref">
+            <span class="small muted">Valores por</span>
+            <span class="slot-grams"><input type="number" id="ref" min="1" step="5" value="${ref}" inputmode="decimal" aria-label="Cantidad de referencia"><span class="unit">g</span></span>
+            <select id="preparation" aria-label="Estado del alimento"><option value="raw" ${preparation === 'raw' ? 'selected' : ''}>en crudo</option><option value="cooked" ${preparation === 'cooked' ? 'selected' : ''}>cocinado</option></select>
+          </div>
         </div>
-        <div class="row wrap" style="gap:6px;margin-bottom:6px">
-          <button class="tag ${filter === 'todos' ? 'on' : ''}" data-filter="todos" style="cursor:pointer;border:0;font-family:inherit">Todos</button>
-          ${ROLE_ORDER.map((r) => `<button class="tag ${filter === r ? 'on' : r}" data-filter="${r}" style="cursor:pointer;border:0;font-family:inherit">${esc(ROLES[r].name)}</button>`).join('')}
+        <div class="filter-tags" role="group" aria-label="Filtrar por tipo">
+          <button class="tag ${filter === 'todos' ? 'on' : ''}" data-filter="todos" aria-pressed="${filter === 'todos'}">Todos</button>
+          ${ROLE_ORDER.map((r) => `<button class="tag ${filter === r ? 'on' : r}" data-filter="${r}" aria-pressed="${filter === r}">${esc(ROLES[r].name)}</button>`).join('')}
         </div>
 
-        <div class="list">
-          ${list.length ? list.map((f) => {
+        ${list.length ? `<div class="food-grid">${list.map((f) => {
             const factor = cookingFactor(f);
+            // Con factor de cocción, la referencia se interpreta en el estado elegido y se pasa a crudo.
             const m = macrosOf(f, ref / (preparation === 'cooked' ? factor || 1 : 1));
+            const other = preparation === 'raw' ? ref * (factor || 1) : ref / (factor || 1);
             return `
-              <div class="list-row">
-                <span class="list-emoji">${esc(f.emoji || '🍽️')}</span>
-                <span class="list-main">
-                  <span class="list-name">${esc(f.name)}</span>${factor ? `<span class="list-sub">${fmtNum(ref,1)} g ${preparation === 'raw' ? 'crudo' : 'cocinado'} ≈ ${fmtNum(preparation === 'raw' ? ref * factor : ref / factor,1)} g ${preparation === 'raw' ? 'cocinado' : 'crudo'}</span>` : '<span class="list-sub">Tal como se consume</span>'}
-                  <span class="list-sub">${f.roles.map((r) => esc(ROLES[r]?.short || r)).join(' · ')}${f.portion ? ` · 1 ${esc(f.portion.label)} = ${f.portion.g} g` : ''}</span>
-                </span>
-                <span class="list-sub" style="min-width:74px;text-align:right"><b>${fmtNum(kcalOf(m), 0)}</b> kcal</span>
-                ${macroChips(m)}
-                <span class="list-actions">
-                  <button class="icon-btn plain" data-edit="${f.id}" aria-label="Editar ${esc(f.name)}">${icon('edit', 'ic-sm')}</button>
-                  <button class="icon-btn plain" data-del="${f.id}" aria-label="Eliminar ${esc(f.name)}">${icon('trash', 'ic-sm')}</button>
-                </span>
-              </div>`;
-          }).join('') : '<div class="empty">No hay alimentos con ese filtro</div>'}
-        </div>
+              <article class="food-card">
+                <div class="food-card-head">
+                  <span class="food-card-emoji">${esc(f.emoji || '🍽️')}</span>
+                  <div class="food-card-title">
+                    <h3>${esc(f.name)}</h3>
+                    ${factor ? `<span class="food-card-sub">${fmtNum(ref, 0)} g ${preparation === 'raw' ? 'crudo' : 'cocinado'} ≈ ${fmtNum(other, 0)} g ${preparation === 'raw' ? 'cocinado' : 'crudo'}</span>` : ''}
+                  </div>
+                  <div class="food-card-actions">
+                    <button class="icon-btn plain" data-edit="${f.id}" aria-label="Editar ${esc(f.name)}">${icon('edit', 'ic-sm')}</button>
+                    <button class="icon-btn plain" data-del="${f.id}" aria-label="Eliminar ${esc(f.name)}">${icon('trash', 'ic-sm')}</button>
+                  </div>
+                </div>
+                <dl class="food-card-macros">
+                  <div class="k"><dt>kcal</dt><dd>${fmtNum(kcalOf(m), 0)}</dd></div>
+                  <div class="p"><dt>Prot.</dt><dd>${fmtNum(m.p, 1)}<small> g</small></dd></div>
+                  <div class="c"><dt>Carbos</dt><dd>${fmtNum(m.c, 1)}<small> g</small></dd></div>
+                  <div class="f"><dt>Grasas</dt><dd>${fmtNum(m.f, 1)}<small> g</small></dd></div>
+                </dl>
+              </article>`;
+          }).join('')}</div>` : '<div class="empty">No hay alimentos con ese filtro</div>'}
       <p class="small muted">Equivalencias aproximadas: cambian según el método y tiempo de cocción. Puedes ajustar el factor de cada alimento al editarlo. <a href="https://nutriolift.com/calculadora/equivalencia-alimentos-crudos-cocidos" target="_blank" rel="noopener">Referencia: Nutriolift</a>.</p></section>`;
   },
 

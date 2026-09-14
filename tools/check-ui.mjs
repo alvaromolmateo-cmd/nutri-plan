@@ -62,6 +62,31 @@ assert.equal(store.diaryMeals(yesterday).desayuno.slots[0].g,160);
 click('[data-edit-food="cena:0"]');click('[data-remove]');
 assert.equal(store.diaryMeals('2026-09-02').cena.slots.length,0);
 
+// Compliance measures closeness to the day's kcal and macros, not the share of checked foods.
+const {dayCompliance}=await import('../js/views/hoy.js');
+store.logFood('2026-09-03','desayuno',{food:'arroz',g:80});
+assert.ok(dayCompliance(store.getState(),'2026-09-03')<40,'A single food is far from full compliance');
+for(const [id,meal] of Object.entries(store.dayPlan('2026-09-04'))) meal.slots.forEach(s=>store.logFood('2026-09-04',id,{food:s.food,g:s.g}));
+assert.ok(dayCompliance(store.getState(),'2026-09-04')>97,'Eating the whole plan is full compliance');
+assert.equal(dayCompliance(store.getState(),'2026-09-05'),null);
+
+// Foods can be removed straight from the diary row, with undo.
+store.logFood('2026-09-02','cena',{food:'pollo',g:100});store.logFood('2026-09-02','cena',{food:'arroz',g:60});
+click('[data-remove-food="cena:0"]');
+assert.equal(store.diaryMeals('2026-09-02').cena.slots.map(s=>s.food).join(),'arroz');
+assert.equal(document.querySelectorAll('[data-swipe^="cena:"]').length,1);
+click('#toast button');
+assert.equal(store.diaryMeals('2026-09-02').cena.slots.map(s=>s.food).join(),'pollo,arroz');
+
+// Plan meals and the food catalogue render as cards.
+navigate('plan');
+assert.ok(document.querySelectorAll('.plan-meal .food-tile').length>=5);
+assert.ok(!$('.plan-meals').textContent.includes(' + '));
+navigate('alimentos');
+assert.equal(document.querySelectorAll('.food-card').length,store.getState().foods.length);
+assert.ok(!$('#view').textContent.includes('Tal como se consume'));
+assert.equal(document.querySelectorAll('.food-card-macros div').length,store.getState().foods.length*4);
+
 navigate('ajustes');
 assert.equal(document.querySelectorAll('[data-meal-time]').length,5);
 assert.equal(document.querySelector('#set-motto'),null);

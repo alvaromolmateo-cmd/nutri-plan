@@ -109,12 +109,24 @@ export function confirmDialog({ title, message, confirmText = 'Eliminar', danger
 
 // ---------- Toast ----------
 let toastTimer = null;
-export function toast(msg, ms = 2400) {
+// `action` opcional ({ label, run }) añade un botón al aviso, p. ej. «Deshacer».
+export function toast(msg, ms = 2400, action = null) {
   const el = document.getElementById('toast');
-  el.textContent = msg;
+  el.textContent = '';
+  el.classList.toggle('has-action', !!action);
+  const text = document.createElement('span');
+  text.textContent = msg;
+  el.append(text);
+  if (action) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = action.label;
+    btn.addEventListener('click', () => { el.classList.remove('show'); action.run(); });
+    el.append(btn);
+  }
   el.classList.add('show');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.classList.remove('show'), ms);
+  toastTimer = setTimeout(() => el.classList.remove('show'), action ? Math.max(ms, 4500) : ms);
 }
 
 // ---------- Pequeños helpers de plantilla ----------

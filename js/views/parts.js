@@ -1,7 +1,7 @@
 // Piezas de interfaz compartidas por las vistas.
 
 import { esc, icon, fmtNum, progressBar } from '../ui.js';
-import { foodById, kcalFromMacros, portionLabel, pct as pctOf } from '../nutrition.js';
+import { foodById, kcalFromMacros, portionLabel, cookingFactor, roundGrams, pct as pctOf } from '../nutrition.js';
 import { ROLES } from '../data.js';
 
 export const MACRO_META = {
@@ -90,7 +90,27 @@ export function slotsText(state, slots, { max = 4 } = {}) {
   return items.join(' + ');
 }
 
-export const roleTag = (role) => `<span class="tag ${role}">${esc(ROLES[role]?.short || role)}</span>`;
+// Alimentos de una comida como fichas: emoji, nombre y cantidad (con su peso cocinado si aplica).
+export function foodTiles(state, slots, { compact = false } = {}) {
+  if (!slots?.length) return '<p class="small muted">Sin alimentos</p>';
+  return `<ul class="food-tiles ${compact ? 'compact' : ''}">${slots.map((s) => {
+    const food = foodById(state, s.food);
+    const factor = cookingFactor(food);
+    const cooked = factor && !compact ? `<small>≈ ${fmtNum(roundGrams(s.g * factor), 0)} g cocinado</small>` : '';
+    return `<li class="food-tile ${esc(s.role || '')}"><span class="food-tile-emoji">${esc(food?.emoji || '🍽️')}</span>
+      <b class="food-tile-amount">${esc(portionLabel(food, s.g))}${factor && !/crud/i.test(food.name) ? ' crudo' : ''}</b>
+      <span class="food-tile-name">${esc(food?.name || '¿?')}</span>${cooked}</li>`;
+  }).join('')}</ul>`;
+}
+
+// Barra apilada con el reparto de kcal entre proteína, carbos y grasas.
+export function macroBar(m) {
+  const parts = [['p', m.p * 4], ['c', m.c * 4], ['f', m.f * 9]];
+  const total = parts.reduce((a, [, v]) => a + v, 0) || 1;
+  return `<div class="macro-bar" aria-hidden="true">${parts.map(([k, v]) => `<span class="${k}" style="width:${(v / total) * 100}%"></span>`).join('')}</div>`;
+}
+
+export const roleTag =(role) => `<span class="tag ${role}">${esc(ROLES[role]?.short || role)}</span>`;
 
 export const foodOptions = (state, role, selected) => state.foods
   .filter((f) => !role || f.roles.includes(role) || f.id === selected)
