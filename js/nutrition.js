@@ -41,15 +41,23 @@ export function roundGrams(g) {
 }
 
 // ---------- Plan de un día ----------
+// Posición de la combinación que la dieta tiene elegida para una comida. `picks` guarda su id; si
+// es un número (copias de antes de la v3) se toma como posición, y si ya no existe, la primera.
+export function pickedIndex(diet, meal) {
+  const pick = diet.picks?.[meal.id];
+  if (typeof pick === 'number') return Math.max(0, Math.min(pick, meal.options.length - 1));
+  const i = meal.options.findIndex((o) => o.id === pick);
+  return i >= 0 ? i : 0;
+}
+
 // Genera las comidas de la dieta activa aplicando el escalado por macro.
 export function dietPlan(diet, { training = true } = {}) {
   const out = {};
   for (const meal of MEALS) {
     if (meal.trainingOnly && !training) continue;
-    const idx = Math.min(diet.picks?.[meal.id] ?? 0, meal.options.length - 1);
-    const option = meal.options[idx];
+    const option = meal.options[pickedIndex(diet, meal)];
     out[meal.id] = {
-      option: idx,
+      option: option.id,
       done: false,
       slots: option.slots.map((s) => ({
         ...s,

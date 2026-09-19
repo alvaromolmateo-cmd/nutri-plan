@@ -1,6 +1,6 @@
 // Arranque, navegación entre vistas y acciones globales (tema, ajustes, copia de seguridad).
 
-import { subscribe, getState, setSettings } from './store.js';
+import { subscribe, getState, setSettings, rescuedOnLoad } from './store.js';
 import { isModalOpen, refreshModal, toast } from './ui.js';
 import { mountCharts } from './charts.js';
 
@@ -72,3 +72,5 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
 applyTheme();
 if (!location.hash) location.hash = '#/hoy';
 render();
+
+if (rescuedOnLoad) toast('No se pudieron abrir tus datos guardados. Están apartados en Ajustes, sin borrar.', 8000);

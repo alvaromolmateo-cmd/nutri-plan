@@ -3,7 +3,7 @@
 import { getState, activeDiet, setActiveDiet, updateDiet, addDiet, deleteDiet } from '../store.js';
 import { esc, icon, fmtNum, uid, openModal, closeModal, modalHeader, toast, confirmDialog } from '../ui.js';
 import { MEALS } from '../data.js';
-import { dietPlan, dietTargets, planMacros, slotsMacros, foodById, portionLabel, kcalFromMacros } from '../nutrition.js';
+import { dietPlan, pickedIndex, dietTargets, planMacros, slotsMacros, foodById, portionLabel, kcalFromMacros } from '../nutrition.js';
 import { kcalOf, macroChips, donut, macroLegend, slotsText, sectionCard } from './parts.js';
 
 // Estado de interfaz: se conserva cuando guardar cantidades vuelve a renderizar la vista.
@@ -77,7 +77,7 @@ export default {
           ${sectionCard('Comidas de la dieta', 'utensils', `
             <div class="list">
               ${MEALS.map((meal) => {
-                const idx = Math.min(diet.picks?.[meal.id] ?? 0, meal.options.length - 1);
+                const idx = pickedIndex(diet, meal);
                 const plan = dietPlan(diet, { training: true });
                 const entry = plan[meal.id];
                 const mm = entry ? slotsMacros(state, entry.slots) : null;
@@ -183,7 +183,7 @@ export default {
       const nueva = {
         id: uid(), name: 'Nueva dieta', emoji: '🍽️', goal: '',
         scale: { carb: 1, protein: 1, fat: 1 },
-        picks: Object.fromEntries(MEALS.map((m) => [m.id, 0])),
+        picks: Object.fromEntries(MEALS.map((m) => [m.id, m.options[0].id])),
       };
       addDiet(nueva);
       setActiveDiet(nueva.id);
@@ -208,7 +208,7 @@ function openPicker(diet, mealId) {
   openModal({
     render: () => {
       const state = getState();
-      const idx = Math.min(diet.picks?.[mealId] ?? 0, meal.options.length - 1);
+      const idx = pickedIndex(diet, meal);
       return `
         ${modalHeader(`Combinación de ${meal.name.toLowerCase()}`, 'Se usará por defecto en los días nuevos')}
         <div class="modal-body">
@@ -229,7 +229,7 @@ function openPicker(diet, mealId) {
     },
     mount: (panel) => {
       panel.querySelectorAll('[data-opt]').forEach((b) => b.addEventListener('click', () => {
-        updateDiet(diet.id, { picks: { ...diet.picks, [mealId]: Number(b.dataset.opt) } });
+        updateDiet(diet.id, { picks: { ...diet.picks, [mealId]: meal.options[Number(b.dataset.opt)].id } });
         closeModal();
         toast('Combinación actualizada');
       }));

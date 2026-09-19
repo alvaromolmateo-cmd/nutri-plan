@@ -97,3 +97,14 @@ dependencias de ejecución. Estas pruebas no sustituyen la revisión visual en u
 - Alimentos: fichas verticales con el nombre y las acciones arriba y los macros debajo; la equivalencia
   crudo/cocinado solo aparece en los alimentos con factor de cocción.
 - Ajustes de diseño para móvil: filas del diario, filtros desplazables y textos que ya no se comprimen.
+
+## Cambios 1.4.0
+
+- Los datos guardados no se pisan nunca sin copia: antes de adaptar los datos de una versión anterior se
+  guarda una copia tal cual (`plataforma-dietas:data:copia`), y si no se pudieran leer se apartan
+  (`plataforma-dietas:data:rescate`) en vez de empezar encima. Ambas se descargan desde Ajustes → Datos.
+- La app pide almacenamiento persistente para que el navegador no borre los datos si anda justo de espacio.
+- La combinación por defecto de cada comida (`diet.picks`) se guarda por el id de la combinación y no por su
+  posición en la lista, para poder añadir, quitar o reordenar combinaciones sin cambiar las dietas de nadie.
+  `DATA_VERSION` 3 convierte las posiciones guardadas a ids.
+- La app ya no trae un nombre puesto: sin nombre, Hoy saluda sin él. Se quita el nombre que venía por defecto.

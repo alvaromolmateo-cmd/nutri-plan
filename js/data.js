@@ -62,11 +62,11 @@ export const MEALS = [
     time: '07:30',
     icon: 'coffee',
     options: [
-      { name: 'Pan con salmón', slots: [s('carb', 'pan-md', 60), s('protein', 'salmon-ahumado', 40)] },
-      { name: 'Pan con pavo', slots: [s('carb', 'pan-md', 60), s('protein', 'pavo-lonchas', 55)] },
-      { name: 'Corn flakes con proteína', slots: [s('carb', 'corn-flakes', 60), s('protein', 'proteina-polvo', 30)] },
-      { name: 'Crema de arroz con leche prote', slots: [s('carb', 'crema-arroz', 55), s('protein', 'proteina-polvo', 30), s('protein', 'leche-prote', 150)] },
-      { name: 'Crema de arroz con fruta', slots: [s('carb', 'crema-arroz', 55), s('protein', 'proteina-polvo', 30), s('fruit', 'fruta', 150)] },
+      { id: 'pan-salmon', name: 'Pan con salmón', slots: [s('carb', 'pan-md', 60), s('protein', 'salmon-ahumado', 40)] },
+      { id: 'pan-pavo', name: 'Pan con pavo', slots: [s('carb', 'pan-md', 60), s('protein', 'pavo-lonchas', 55)] },
+      { id: 'corn-flakes-proteina', name: 'Corn flakes con proteína', slots: [s('carb', 'corn-flakes', 60), s('protein', 'proteina-polvo', 30)] },
+      { id: 'crema-arroz-proteina', name: 'Crema de arroz con leche prote', slots: [s('carb', 'crema-arroz', 55), s('protein', 'proteina-polvo', 30), s('protein', 'leche-prote', 150)] },
+      { id: 'crema-arroz-fruta', name: 'Crema de arroz con fruta', slots: [s('carb', 'crema-arroz', 55), s('protein', 'proteina-polvo', 30), s('fruit', 'fruta', 150)] },
     ],
   },
   {
@@ -75,9 +75,9 @@ export const MEALS = [
     time: '10:30',
     icon: 'snack',
     options: [
-      { name: 'Crema de arroz con proteína', slots: [s('carb', 'crema-arroz', 60), s('protein', 'leche-prote', 150), s('protein', 'proteina-polvo', 45)] },
-      { name: 'Tortitas de arroz con pavo', slots: [s('carb', 'tortitas-arroz', 100), s('protein', 'pavo-lonchas', 75)] },
-      { name: 'Avena con huevo y claras', slots: [s('carb', 'harina-avena', 50), s('protein', 'huevo', 60), s('protein', 'claras', 75)] },
+      { id: 'crema-arroz-proteina', name: 'Crema de arroz con proteína', slots: [s('carb', 'crema-arroz', 60), s('protein', 'leche-prote', 150), s('protein', 'proteina-polvo', 45)] },
+      { id: 'tortitas-pavo', name: 'Tortitas de arroz con pavo', slots: [s('carb', 'tortitas-arroz', 100), s('protein', 'pavo-lonchas', 75)] },
+      { id: 'avena-huevo', name: 'Avena con huevo y claras', slots: [s('carb', 'harina-avena', 50), s('protein', 'huevo', 60), s('protein', 'claras', 75)] },
     ],
     extras: [
       { role: 'extra', food: 'cacao', g: 10 },
@@ -91,14 +91,14 @@ export const MEALS = [
     time: '14:00',
     icon: 'utensils',
     options: [
-      { name: 'Arroz con pollo', slots: [s('carb', 'arroz', 75), s('protein', 'pollo', 160)] },
-      { name: 'Arroz con huevos', slots: [s('carb', 'arroz', 75), s('protein', 'huevo', 120), s('protein', 'claras', 50)] },
-      { name: 'Pasta con ternera', slots: [s('carb', 'pasta', 80), s('protein', 'ternera', 100)] },
-      { name: 'Pasta con dorada', slots: [s('carb', 'pasta', 80), s('protein', 'dorada', 180)] },
-      { name: 'Patata con merluza', slots: [s('carb', 'patata', 350), s('protein', 'merluza', 180), s('fat', 'aove', 5)] },
-      { name: 'Patata con lubina', slots: [s('carb', 'patata', 350), s('protein', 'lubina', 180), s('fat', 'aove', 5)] },
-      { name: 'Boniato con salmón', slots: [s('carb', 'boniato', 275), s('protein', 'salmon', 105), s('fat', 'mozzarella', 20)] },
-      { name: 'Ñoquis con pavo', slots: [s('carb', 'gnocchis', 240), s('protein', 'pavo', 120), s('fat', 'aguacate', 30), s('fruit', 'fruta', 150)] },
+      { id: 'arroz-pollo', name: 'Arroz con pollo', slots: [s('carb', 'arroz', 75), s('protein', 'pollo', 160)] },
+      { id: 'arroz-huevos', name: 'Arroz con huevos', slots: [s('carb', 'arroz', 75), s('protein', 'huevo', 120), s('protein', 'claras', 50)] },
+      { id: 'pasta-ternera', name: 'Pasta con ternera', slots: [s('carb', 'pasta', 80), s('protein', 'ternera', 100)] },
+      { id: 'pasta-dorada', name: 'Pasta con dorada', slots: [s('carb', 'pasta', 80), s('protein', 'dorada', 180)] },
+      { id: 'patata-merluza', name: 'Patata con merluza', slots: [s('carb', 'patata', 350), s('protein', 'merluza', 180), s('fat', 'aove', 5)] },
+      { id: 'patata-lubina', name: 'Patata con lubina', slots: [s('carb', 'patata', 350), s('protein', 'lubina', 180), s('fat', 'aove', 5)] },
+      { id: 'boniato-salmon', name: 'Boniato con salmón', slots: [s('carb', 'boniato', 275), s('protein', 'salmon', 105), s('fat', 'mozzarella', 20)] },
+      { id: 'noquis-pavo', name: 'Ñoquis con pavo', slots: [s('carb', 'gnocchis', 240), s('protein', 'pavo', 120), s('fat', 'aguacate', 30), s('fruit', 'fruta', 150)] },
     ],
   },
   {
@@ -109,8 +109,8 @@ export const MEALS = [
     trainingOnly: true,
     note: 'Solo días de entrenamiento',
     options: [
-      { name: 'Zumo de manzana', slots: [s('carb', 'zumo-manzana', 350)] },
-      { name: 'Maltodextrina', slots: [s('carb', 'maltodextrina', 40)] },
+      { id: 'zumo-manzana', name: 'Zumo de manzana', slots: [s('carb', 'zumo-manzana', 350)] },
+      { id: 'maltodextrina', name: 'Maltodextrina', slots: [s('carb', 'maltodextrina', 40)] },
     ],
   },
   {
@@ -119,19 +119,20 @@ export const MEALS = [
     time: '21:00',
     icon: 'moon',
     options: [
-      { name: 'Arroz con pollo', slots: [s('carb', 'arroz', 75), s('protein', 'pollo', 160)] },
-      { name: 'Arroz con huevos', slots: [s('carb', 'arroz', 75), s('protein', 'huevo', 120), s('protein', 'claras', 50)] },
-      { name: 'Pasta con ternera', slots: [s('carb', 'pasta', 80), s('protein', 'ternera', 100)] },
-      { name: 'Pasta con dorada', slots: [s('carb', 'pasta', 80), s('protein', 'dorada', 180)] },
-      { name: 'Patata con merluza', slots: [s('carb', 'patata', 350), s('protein', 'merluza', 180), s('fat', 'aove', 5)] },
-      { name: 'Patata con lubina', slots: [s('carb', 'patata', 350), s('protein', 'lubina', 180), s('fat', 'aove', 5)] },
-      { name: 'Boniato con salmón', slots: [s('carb', 'boniato', 275), s('protein', 'salmon', 105), s('fat', 'mozzarella', 20)] },
-      { name: 'Ñoquis con pavo', slots: [s('carb', 'gnocchis', 250), s('protein', 'pavo', 120), s('fat', 'aguacate', 30), s('veg', 'verduras', 200)] },
+      { id: 'arroz-pollo', name: 'Arroz con pollo', slots: [s('carb', 'arroz', 75), s('protein', 'pollo', 160)] },
+      { id: 'arroz-huevos', name: 'Arroz con huevos', slots: [s('carb', 'arroz', 75), s('protein', 'huevo', 120), s('protein', 'claras', 50)] },
+      { id: 'pasta-ternera', name: 'Pasta con ternera', slots: [s('carb', 'pasta', 80), s('protein', 'ternera', 100)] },
+      { id: 'pasta-dorada', name: 'Pasta con dorada', slots: [s('carb', 'pasta', 80), s('protein', 'dorada', 180)] },
+      { id: 'patata-merluza', name: 'Patata con merluza', slots: [s('carb', 'patata', 350), s('protein', 'merluza', 180), s('fat', 'aove', 5)] },
+      { id: 'patata-lubina', name: 'Patata con lubina', slots: [s('carb', 'patata', 350), s('protein', 'lubina', 180), s('fat', 'aove', 5)] },
+      { id: 'boniato-salmon', name: 'Boniato con salmón', slots: [s('carb', 'boniato', 275), s('protein', 'salmon', 105), s('fat', 'mozzarella', 20)] },
+      { id: 'noquis-pavo', name: 'Ñoquis con pavo', slots: [s('carb', 'gnocchis', 250), s('protein', 'pavo', 120), s('fat', 'aguacate', 30), s('veg', 'verduras', 200)] },
     ],
   },
 ];
 
-// Dietas de partida. `picks` es la opción por defecto de cada comida y
+// Dietas de partida. `picks` es la combinación por defecto de cada comida (por su id, no por su
+// posición: así se pueden añadir, quitar o reordenar combinaciones sin cambiar las dietas guardadas) y
 // `scale` el multiplicador de cantidades por macro (se ajusta desde "Mis dietas").
 export const DEFAULT_DIETS = [
   {
@@ -140,7 +141,7 @@ export const DEFAULT_DIETS = [
     emoji: '🔥',
     goal: 'Bajar grasa manteniendo la masa muscular',
     scale: { carb: 1, protein: 1, fat: 1 },
-    picks: { desayuno: 0, 'media-manana': 0, comida: 0, merienda: 1, cena: 6 },
+    picks: { desayuno: 'pan-salmon', 'media-manana': 'crema-arroz-proteina', comida: 'arroz-pollo', merienda: 'maltodextrina', cena: 'boniato-salmon' },
   },
   {
     id: 'volumen',
@@ -148,7 +149,7 @@ export const DEFAULT_DIETS = [
     emoji: '💪',
     goal: 'Ganar masa muscular con superávit controlado',
     scale: { carb: 1.35, protein: 1.1, fat: 1.15 },
-    picks: { desayuno: 2, 'media-manana': 0, comida: 4, merienda: 0, cena: 2 },
+    picks: { desayuno: 'corn-flakes-proteina', 'media-manana': 'crema-arroz-proteina', comida: 'patata-merluza', merienda: 'zumo-manzana', cena: 'pasta-ternera' },
   },
   {
     id: 'recomposicion',
@@ -156,7 +157,7 @@ export const DEFAULT_DIETS = [
     emoji: '⚖️',
     goal: 'Perder grasa y ganar músculo a la vez',
     scale: { carb: 1.1, protein: 1.15, fat: 1 },
-    picks: { desayuno: 3, 'media-manana': 2, comida: 7, merienda: 1, cena: 4 },
+    picks: { desayuno: 'crema-arroz-proteina', 'media-manana': 'avena-huevo', comida: 'noquis-pavo', merienda: 'maltodextrina', cena: 'patata-merluza' },
   },
 ];
 

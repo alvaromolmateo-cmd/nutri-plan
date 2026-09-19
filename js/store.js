@@ -1,12 +1,12 @@
 // Estado de la aplicación: se guarda entero en localStorage y se avisa a las vistas al cambiar.
 
 import { FOODS, DEFAULT_DIETS, MEALS } from './data.js';
-import { allowedSlots, dietPlan, roundGrams } from './nutrition.js';
+import { allowedSlots, dietPlan, roundGrams, pickedIndex } from './nutrition.js';
 import { todayKey } from './dates.js';
 
 const KEY = 'plataforma-dietas:data';
-export const DATA_VERSION = 2;
-export const APP_VERSION = '1.2.3';
+export const DATA_VERSION = 3;
+export const APP_VERSION = '1.4.0';
 
 const clone = (v) => JSON.parse(JSON.stringify(v));
 
@@ -14,7 +14,7 @@ function initialState() {
   return {
     version: DATA_VERSION,
     settings: {
-      name: 'Álvaro',
+      name: '',
       activeDiet: 'definicion',
       theme: 'light',
       mealTimes: Object.fromEntries(MEALS.map(m => [m.id, m.time])),
@@ -27,21 +27,83 @@ function initialState() {
   };
 }
 
-let state = load();
-const listeners = new Set();
+// ---------- Carga y guardado ----------
+// Red de seguridad: lo guardado no se pisa sin dejar copia.
+// - Si los datos vienen de otra versión de la app, antes de adaptarlos se guarda una copia tal cual
+//   (`:copia`), por si la actualización trajera algún fallo.
+// - Si no se pueden leer, se apartan en `:rescate` y la app arranca en blanco; ahí se quedan hasta
+//   que se descarguen o se descarten desde Ajustes. Si ni siquiera se pueden apartar, no se guarda
+//   nada para no pisarlos.
+const BACKUP_KEY = `${KEY}:copia`;
+const RESCUE_KEY = `${KEY}:rescate`;
+let readOnly = false;
+export let rescuedOnLoad = false;
+
+const stamp = (raw, version) => ({ savedAt: new Date().toISOString(), version, raw });
+
+function readRescues() {
+  try {
+    const list = JSON.parse(localStorage.getItem(RESCUE_KEY) || '[]');
+    return Array.isArray(list) ? list : [];
+  } catch {
+    return [];
+  }
+}
 
 function load() {
+  let raw = null;
   try {
-    const raw = localStorage.getItem(KEY);
-    if (!raw) return initialState();
+    raw = localStorage.getItem(KEY);
+  } catch (e) {
+    console.warn('No se pudo leer el almacenamiento', e);
+    return initialState();
+  }
+  if (!raw) return initialState();
+
+  let version = null;
+  try {
     const data = JSON.parse(raw);
+    version = Number(data?.version) || 1;
+    if (version !== DATA_VERSION) {
+      try {
+        localStorage.setItem(BACKUP_KEY, JSON.stringify(stamp(raw, version)));
+      } catch (e) {
+        console.warn('No se pudo guardar la copia previa a la actualización', e);
+      }
+    }
     return migrate(data);
-  } catch {
+  } catch (e) {
+    console.warn('No se pudieron leer los datos guardados; se apartan sin tocarlos', e);
+    try {
+      const rescues = readRescues();
+      // Si ya estaban apartados (se ha recargado sin tocar nada), no se duplican.
+      if (!rescues.some((r) => r.raw === raw)) {
+        localStorage.setItem(RESCUE_KEY, JSON.stringify([...rescues, stamp(raw, version)]));
+      }
+      rescuedOnLoad = true;
+    } catch {
+      readOnly = true;
+    }
     return initialState();
   }
 }
 
+// Pide al navegador que no borre estos datos cuando ande justo de espacio (Safari, sobre todo).
+try { navigator.storage?.persist?.()?.catch?.(() => {}); } catch { /* sin soporte */ }
+
+// Copias que guarda la red de seguridad, para descargarlas o descartarlas desde Ajustes.
+export function safetyCopies() {
+  let backup = null;
+  try { backup = JSON.parse(localStorage.getItem(BACKUP_KEY) || 'null'); } catch { /* ilegible */ }
+  return { backup, rescues: readRescues(), readOnly };
+}
+
+export function discardSafetyCopy(kind) {
+  try { localStorage.removeItem(kind === 'rescue' ? RESCUE_KEY : BACKUP_KEY); } catch { /* sin acceso */ }
+}
+
 function migrate(data) {
+  const from = Number(data.version) || 1;
   const base = initialState();
   const out = { ...base, ...data, settings: { ...base.settings, ...(data.settings || {}) } };
   // Alimentos nuevos del catálogo que el usuario todavía no tiene.
@@ -49,15 +111,28 @@ function migrate(data) {
   out.foods = (out.foods || []).concat(FOODS.filter((f) => !ids.has(f.id)).map(clone));
   if (!out.diets?.length) out.diets = clone(DEFAULT_DIETS);
   // Los objetivos manuales ya no existen: los objetivos salen siempre del plan.
-  out.diets = out.diets.map(({ targets, ...d }) => d);
+  // v3: la combinación elegida de cada comida se guarda por su id y no por su posición en la lista.
+  out.diets = out.diets.map(({ targets, ...d }) => ({
+    ...d,
+    picks: Object.fromEntries(MEALS.map((m) => {
+      const pick = d.picks?.[m.id];
+      return [m.id, typeof pick === 'string' ? pick : m.options[pickedIndex(d, m)].id];
+    })),
+  }));
   out.days = out.days || {};
   out.settings.theme = out.settings.theme === 'dark' ? 'dark' : 'light';
+  // v3: la app ya no viene con un nombre puesto; se quita el que traía por defecto.
+  if (from < 3 && out.settings.name === 'Álvaro') out.settings.name = '';
   out.settings.mealTimes = { ...base.settings.mealTimes, ...out.settings.mealTimes };
   out.version = DATA_VERSION;
   return out;
 }
 
+let state = load();
+const listeners = new Set();
+
 function save() {
+  if (readOnly) return;
   try {
     localStorage.setItem(KEY, JSON.stringify(state));
   } catch (e) {
@@ -151,7 +226,7 @@ export function setMealOption(key, mealId, optionIdx) {
   const diet = activeDiet();
   meals[mealId] = {
     ...(meals[mealId] || {}),
-    option: optionIdx,
+    option: option.id,
     slots: option.slots.map((s) => ({
       ...s,
       role: s.role,

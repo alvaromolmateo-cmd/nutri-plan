@@ -1,4 +1,4 @@
-import { getState, setSettings, exportData, importData, resetAll, APP_VERSION } from '../store.js';
+import { getState, setSettings, exportData, importData, resetAll, APP_VERSION, safetyCopies, discardSafetyCopy } from '../store.js';
 import { esc, icon, toast, confirmDialog } from '../ui.js';
 import { MEALS } from '../data.js';
 import { WEEKDAYS_SHORT, todayKey } from '../dates.js';
@@ -12,6 +12,33 @@ window.addEventListener('appinstalled', () => {
   installPrompt = null;
   window.dispatchEvent(new CustomEvent('nutriplan:render'));
 });
+
+// Descarga un texto como archivo .json.
+function download(text, name) {
+  const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+const fileDate = (iso) => (iso || new Date().toISOString()).slice(0, 10);
+const longDate = (iso) => new Date(iso).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
+
+// Copias automáticas de la red de seguridad del almacenamiento (ver store.js).
+function safetyBlock() {
+  const { backup, rescues, readOnly } = safetyCopies();
+  if (!backup && !rescues.length && !readOnly) return '';
+  return `
+    ${readOnly ? '<p class="small"><b>Los datos guardados no se pudieron abrir y no hay sitio para apartarlos</b>, así que la app no guarda nada para no pisarlos. Libera espacio antes de seguir.</p>' : ''}
+    ${rescues.length ? `
+      <p class="small"><b>Hay datos antiguos que la app no pudo abrir.</b> No se han borrado: están apartados aquí. Descárgalos y guárdalos; se podrán importar cuando se corrija el fallo.</p>
+      <div class="row wrap" style="margin-bottom:12px"><button class="btn btn-sm" id="set-rescue-get">${icon('download','ic-sm')} Descargar datos apartados</button><button class="btn btn-sm btn-danger" id="set-rescue-drop">${icon('trash','ic-sm')} Descartar</button></div>` : ''}
+    ${backup ? `
+      <p class="small muted">Copia automática de antes de la última actualización de la app (${esc(longDate(backup.savedAt))}). Solo hace falta si algo se ve raro tras actualizar.</p>
+      <div class="row wrap" style="margin-bottom:12px"><button class="btn btn-sm" id="set-backup-get">${icon('download','ic-sm')} Descargar copia automática</button></div>` : ''}`;
+}
 
 export default {
   title: 'Ajustes',
@@ -31,7 +58,7 @@ export default {
         </section>
         <section class="card settings-data"><div class="card-head"><h2 class="card-title">${icon('download')}Datos</h2><span class="small muted right">${Object.keys(state.days).length} días</span></div>
           <div class="row wrap"><button class="btn btn-sm" id="set-export">${icon('download','ic-sm')} Exportar copia</button><button class="btn btn-sm" id="set-import">${icon('upload','ic-sm')} Importar copia</button><input type="file" id="set-file" accept="application/json,.json" hidden></div>
-          <p class="small muted">Tus datos se guardan en este dispositivo. Importar una copia sustituye los datos actuales.</p><button class="btn btn-sm btn-danger" id="set-reset">${icon('trash','ic-sm')} Borrar todos los datos</button>
+          <p class="small muted">Tus datos se guardan en este dispositivo. Importar una copia sustituye los datos actuales.</p>${safetyBlock()}<button class="btn btn-sm btn-danger" id="set-reset">${icon('trash','ic-sm')} Borrar todos los datos</button>
         </section>
         <section class="card settings-app"><div class="card-head"><h2 class="card-title">${icon('download')}Aplicación</h2><span class="small muted right">v${APP_VERSION}</span></div>
           ${installed?'<p class="small">Instalada en este dispositivo.</p>':installPrompt?'<button class="btn btn-sm" id="set-install">Instalar aplicación</button>':'<p class="small muted">En el menú del navegador: <b>Instalar aplicación</b>. En iPhone o iPad: Compartir → Añadir a pantalla de inicio.</p>'}
@@ -41,7 +68,7 @@ export default {
       </div>`;
   },
   mount(root) {
-    root.querySelector('#set-name').addEventListener('change',e=>setSettings({name:e.target.value.trim()||'Álvaro'}));
+    root.querySelector('#set-name').addEventListener('change',e=>setSettings({name:e.target.value.trim()}));
     root.querySelector('#set-weight-goal').addEventListener('change',e=>{
       const n=Number(e.target.value);
       if(e.target.value && (!Number.isFinite(n)||n<=0)){toast('Introduce un peso válido');return;}
@@ -53,8 +80,20 @@ export default {
       setSettings({mealTimes:{...getState().settings.mealTimes,[input.dataset.mealTime]:input.value}});
     }));
     root.querySelector('#set-export').addEventListener('click',()=>{
-      const url=URL.createObjectURL(new Blob([exportData()],{type:'application/json'}));
-      const a=document.createElement('a');a.href=url;a.download=`nutriplan-${todayKey()}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);toast('Copia exportada');
+      download(exportData(),`nutriplan-${todayKey()}.json`);toast('Copia exportada');
+    });
+    root.querySelector('#set-backup-get')?.addEventListener('click',()=>{
+      const {backup}=safetyCopies();
+      if(backup)download(backup.raw,`nutriplan-copia-${fileDate(backup.savedAt)}.json`);
+    });
+    root.querySelector('#set-rescue-get')?.addEventListener('click',()=>{
+      safetyCopies().rescues.forEach((r,i)=>download(r.raw,`nutriplan-apartados-${fileDate(r.savedAt)}-${i+1}.json`));
+    });
+    root.querySelector('#set-rescue-drop')?.addEventListener('click',async()=>{
+      if(!await confirmDialog({title:'Descartar datos apartados',message:'Se borran para siempre los datos que la app no pudo abrir. Descárgalos antes si hay algo que quieras conservar.',confirmText:'Descartar'}))return;
+      discardSafetyCopy('rescue');
+      window.dispatchEvent(new CustomEvent('nutriplan:render'));
+      toast('Datos apartados descartados');
     });
     const file=root.querySelector('#set-file');
     root.querySelector('#set-import').addEventListener('click',()=>file.click());
