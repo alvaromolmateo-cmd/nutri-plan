@@ -6,9 +6,9 @@ const path = require('path');
 const zlib = require('zlib');
 
 const OUT = path.join(__dirname, '..', 'icons');
-const BG = [0x2b, 0x11, 0x16];
-const LEAF = [0xd4, 0x53, 0x5d];
-const LEAF_DARK = [0x8f, 0x24, 0x30];
+const BG = [0x16, 0x28, 0x3a];
+const LEAF = [0x3c, 0xc2, 0x83];
+const LEAF_DARK = [0x1f, 0x6e, 0x4c];
 
 // Distancia de un punto al segmento AB, para dibujar el tallo con grosor.
 function distToSegment(px, py, ax, ay, bx, by) {
