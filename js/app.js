@@ -48,7 +48,7 @@ function applyTheme() {
   const t = getState().settings.theme === 'dark' ? 'dark' : 'light';
   document.documentElement.dataset.theme = t;
   const dark = t === 'dark';
-  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#000000' : '#ffffff');
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#0b131b' : '#f3f5f7');
   const btn = document.getElementById('theme-btn');
   if (btn) btn.querySelector('use').setAttribute('href', dark ? '#i-sun' : '#i-moon');
 }

@@ -1,32 +1,35 @@
-/* NutriPlan — paleta de rojos oscuros, tema claro y oscuro. */
+/* NutriPlan — paleta verde salud con barra lateral azul marino, tema claro y oscuro. */
 
 :root {
   color-scheme: light;
-  --bg: #f6f3f3;
+  --bg: #f3f5f7;
   --surface: #ffffff;
-  --surface-2: #faf6f6;
-  --surface-3: #f2ebec;
-  --border: #e8dedf;
-  --border-strong: #d8c9cb;
-  --text: #1f1416;
-  --text-soft: #4a383c;
-  --muted: #7c6a6e;
-  --primary: #8f2430;
-  --primary-hover: #7a1e28;
-  --primary-soft: #f7e8e9;
+  --surface-2: #f8fafb;
+  --surface-3: #eef2f4;
+  --border: #e3e8ec;
+  --border-strong: #cfd7de;
+  --text: #15212e;
+  --text-soft: #3a4856;
+  --muted: #6b7885;
+  --primary: #1f8f5f;
+  --primary-hover: #187a50;
+  --primary-soft: #e3f4ea;
   --on-primary: #fff;
-  --sidebar-bg: #ffffff;
-  --sidebar-text: #44272d;
-  --sidebar-muted: #76676b;
-  --sidebar-active: #8f2430;
-  --c-prot: #c0424e;
-  --c-carb: #b8791e;
-  --c-fat: #2a78d6;
-  --c-veg: #4c7a45;
-  --c-kcal: #8f2430;
+  --danger: #d9473b;
+  --danger-soft: #fdeceb;
+  --sidebar-bg: #16283a;
+  --sidebar-text: #ffffff;
+  --sidebar-muted: #c3cdd8;
+  --sidebar-hover: rgba(255, 255, 255, .07);
+  --sidebar-active: #1f6e4c;
+  --c-prot: #f0675a;
+  --c-carb: #f0b429;
+  --c-fat: #3b82f6;
+  --c-veg: #2f9e66;
+  --c-kcal: #1f8f5f;
   --series-1: var(--primary);
-  --shadow: 0 1px 2px rgba(31, 20, 22, .06), 0 8px 24px rgba(31, 20, 22, .06);
-  --shadow-sm: 0 1px 2px rgba(31, 20, 22, .07);
+  --shadow: 0 1px 2px rgba(21, 33, 46, .05), 0 8px 24px rgba(21, 33, 46, .06);
+  --shadow-sm: 0 1px 2px rgba(21, 33, 46, .06);
   --r: 14px;
   --r-sm: 10px;
   --sidebar-w: 244px;
@@ -34,28 +37,31 @@
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --bg: #000000;
-  --surface: #171214;
-  --surface-2: #21171a;
-  --surface-3: #2b1c20;
-  --border: #352127;
-  --border-strong: #4d2e36;
-  --text: #f6eaeb;
-  --text-soft: #dcc7ca;
-  --muted: #b1959a;
-  --primary: #d4535d;
-  --primary-hover: #e0656e;
-  --primary-soft: #3a1a20;
-  --on-primary: #24080c;
-  --sidebar-bg: #140b0e;
-  --sidebar-text: #ecd9db;
-  --sidebar-muted: #a1868a;
-  --sidebar-active: #8f2430;
-  --c-prot: #e0616b;
-  --c-carb: #c4842a;
-  --c-fat: #3987e5;
-  --c-veg: #6a9c5f;
-  --c-kcal: #d4535d;
+  --bg: #0b131b;
+  --surface: #131e29;
+  --surface-2: #182533;
+  --surface-3: #1e2d3c;
+  --border: #233344;
+  --border-strong: #31455a;
+  --text: #eef3f7;
+  --text-soft: #c9d4de;
+  --muted: #8d9cab;
+  --primary: #3cc283;
+  --primary-hover: #52d094;
+  --primary-soft: #133528;
+  --on-primary: #06231a;
+  --danger: #f06b5f;
+  --danger-soft: #3a1c1c;
+  --sidebar-bg: #0f1d2b;
+  --sidebar-text: #ffffff;
+  --sidebar-muted: #a7b4c2;
+  --sidebar-hover: rgba(255, 255, 255, .06);
+  --sidebar-active: #1f6e4c;
+  --c-prot: #f47c70;
+  --c-carb: #f5c24a;
+  --c-fat: #5b9bf8;
+  --c-veg: #48b97e;
+  --c-kcal: #3cc283;
   --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 10px 28px rgba(0, 0, 0, .35);
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, .35);
 }
@@ -113,12 +119,12 @@ a { color: inherit; text-decoration: none; }
 
 .nav { display: flex; flex-direction: column; gap: 4px; }
 .nav-item { display: flex; align-items: center; gap: 12px; padding: 11px 12px; border-radius: 11px; color: var(--sidebar-muted); font-weight: 550; transition: background .15s, color .15s; }
-.nav-item:hover { background: var(--primary-soft); color: var(--sidebar-text); }
+.nav-item:hover { background: var(--sidebar-hover); color: var(--sidebar-text); }
 .nav-item.active { background: var(--sidebar-active); color: #fff; }
 
 .sidebar-foot { margin-top: auto; display: flex; flex-direction: column; gap: 2px; }
 .ghost-btn { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 0; border-radius: 11px; background: none; color: var(--sidebar-muted); font: inherit; font-weight: 550; cursor: pointer; text-align: left; }
-.ghost-btn:hover { background: var(--primary-soft); color: var(--sidebar-text); }
+.ghost-btn:hover { background: var(--sidebar-hover); color: var(--sidebar-text); }
 .tagline { margin: 14px 12px 0; padding-top: 14px; border-top: 1px solid rgba(255, 255, 255, .1); color: var(--sidebar-muted); font-size: 12.5px; line-height: 1.45; }
 
 .main { flex: 1; min-width: 0; padding: 26px 28px 40px; outline: none; }
@@ -159,8 +165,8 @@ a { color: inherit; text-decoration: none; }
 .btn:active { transform: translateY(1px); }
 .btn-primary { background: var(--primary); border-color: var(--primary); color: var(--on-primary); }
 .btn-primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); }
-.btn-danger { background: transparent; border-color: var(--primary); color: var(--primary); }
-.btn-danger:hover { background: var(--primary-soft); }
+.btn-danger { background: transparent; border-color: var(--danger); color: var(--danger); }
+.btn-danger:hover { background: var(--danger-soft); }
 .btn-sm { padding: 6px 10px; font-size: 13px; }
 .btn-block { width: 100%; justify-content: center; }
 
@@ -408,7 +414,7 @@ input[type="range"] { width: 100%; accent-color: var(--primary); padding: 0; bor
 
 /* ---------- Modal ---------- */
 #modal:empty { display: none; }
-.modal-backdrop { position: fixed; inset: 0; background: rgba(20, 8, 11, .5); backdrop-filter: blur(2px); z-index: 40; }
+.modal-backdrop { position: fixed; inset: 0; background: rgba(11, 19, 27, .5); backdrop-filter: blur(2px); z-index: 40; }
 .modal-panel {
   position: fixed; z-index: 41; left: 50%; top: 50%; transform: translate(-50%, -50%);
   width: min(680px, calc(100vw - 28px)); max-height: min(88vh, 900px);
@@ -480,6 +486,7 @@ input[type="range"] { width: 100%; accent-color: var(--primary); padding: 0; bor
 
 /* Diario: primero el balance, después el registro de cada comida. */
 .ghost-btn.active { background: var(--primary-soft); color: var(--primary); }
+.sidebar .ghost-btn.active { background: var(--sidebar-active); color: #fff; }
 .diary-overview { margin-bottom: 20px; }
 .diary-week { display: grid; grid-template-columns: repeat(7,minmax(0,1fr)); max-width: 620px; margin: 0 auto 22px; gap: 8px; }
 .diary-week button { font: inherit; color: var(--muted); border: 0; background: none; display: grid; justify-items: center; gap: 7px; cursor: pointer; padding: 6px; border-radius: 15px; }
@@ -592,7 +599,7 @@ input[type="range"] { width: 100%; accent-color: var(--primary); padding: 0; bor
   .diary-remove { width: 32px; height: 32px; }
 }
 .diary-remove { color: var(--muted); }
-.diary-remove:hover { color: var(--primary); background: var(--primary-soft); }
+.diary-remove:hover { color: var(--danger); background: var(--danger-soft); }
 .diary-swipe { position: relative; overflow: hidden; touch-action: pan-y; }
 .diary-swipe .diary-food { position: relative; background: var(--surface); transition: transform .2s ease, opacity .2s ease; }
 .diary-swipe.swiping .diary-food { transition: none; }
@@ -600,7 +607,7 @@ input[type="range"] { width: 100%; accent-color: var(--primary); padding: 0; bor
 .diary-swipe-bg { position: absolute; inset: 1px 0; display: flex; align-items: center; justify-content: flex-start; gap: 6px; padding: 0 16px; border-radius: 12px; background: var(--surface-3); color: var(--muted); font-size: 13px; font-weight: 650; opacity: 0; transition: background .15s, color .15s; }
 .diary-swipe[data-dir="left"] .diary-swipe-bg { justify-content: flex-end; }
 .diary-swipe.swiping .diary-swipe-bg, .diary-swipe.dismissed .diary-swipe-bg { opacity: 1; }
-.diary-swipe.armed .diary-swipe-bg, .diary-swipe.dismissed .diary-swipe-bg { background: var(--primary); color: var(--on-primary); }
+.diary-swipe.armed .diary-swipe-bg, .diary-swipe.dismissed .diary-swipe-bg { background: var(--danger); color: #fff; }
 .compliance-info { min-width: 0; flex: 1; }
 
 /* ---------- Plan: comidas con fichas de alimentos ---------- */

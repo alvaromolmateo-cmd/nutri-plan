@@ -1,7 +1,7 @@
 // Service worker: precarga la aplicación y sirve desde la red con respaldo en caché.
 // Sube VERSION cada vez que cambien los archivos precargados.
 
-const VERSION = 'nutriplan-v1.4.0';
+const VERSION = 'nutriplan-v1.5.0';
 
 const ASSETS = [
   './index.html',
